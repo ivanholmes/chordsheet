@@ -70,7 +70,7 @@ class BlockTableView(MTableView):
     def populate(self, bList):
         self.model.removeRows(0, self.model.rowCount())
         for b in bList:
-            rowList = [QtGui.QStandardItem(b.chord.name), QtGui.QStandardItem(str(b.length)), QtGui.QStandardItem(b.notes)]
+            rowList = [QtGui.QStandardItem((b.chord.name if b.chord else "")), QtGui.QStandardItem(str(b.length)), QtGui.QStandardItem(b.notes)]
             for item in rowList:
                 item.setEditable(False)
                 item.setDropEnabled(False)
