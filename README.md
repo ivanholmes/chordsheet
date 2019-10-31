@@ -18,6 +18,6 @@ Chordsheet is alpha-grade software. At present, the program will crash readily g
 - Chord names and notes can spill out of their block if it's not big enough
 - Poor font handling (choice of either FreeSans or Helvetica Neue if installed)
 
-## Dependencies
+## Dependencies
 Chordsheet depends on pymupdf (to show the preview), reportlab (to generate the PDF), and PyQt5 (for the GUI).
 Also, a font that supports musical symbols is required. A copy of FreeSans is bundled (in the fonts folder).
