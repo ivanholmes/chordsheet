@@ -1,0 +1,46 @@
+<chordsheet>
+	<title>Composition</title>
+	<composer>A. Person</composer>
+	<timesignature>4</timesignature>
+	<chords>
+		<chord>
+			<name>B</name>
+			<voicing instrument="guitar">xx2341</voicing>
+			<voicing instrument="piano">abcdefg</voicing>
+		</chord>
+		<chord>
+			<name>E</name>
+			<voicing instrument="guitar">022100</voicing>
+		</chord>
+		<chord>
+			<name>Cm9</name>
+			<voicing instrument="guitar">x,x,8,8,8,10</voicing>
+		</chord>
+		<chord>
+			<name>D7b5#9</name>
+		</chord>
+	</chords>
+	<progression>
+		<block>
+			<length>4</length>
+			<chord>B</chord>
+			<notes>These are notes</notes>
+		</block>
+		<block>
+			<length>4</length>
+			<chord>E</chord>
+		</block>
+		<block>
+			<length>12</length>
+			<chord>Cm9</chord>
+		</block>
+		<block>
+			<length>6</length>
+			<chord>D7b5#9</chord>
+		</block>
+		<block>
+			<length>6</length>
+			<notes>For quiet contemplation.</notes>
+		</block>
+	</progression>
+</chordsheet>
