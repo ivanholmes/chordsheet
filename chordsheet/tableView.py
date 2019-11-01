@@ -30,18 +30,20 @@ class MTableView(QtWidgets.QTableView):
     def __init__(self, parent):
         super().__init__(parent)
 
+        self.model =  MItemModel()
+        self.setModel(self.model)
+
         self.verticalHeader().hide()
         self.horizontalHeader().show()
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+        self.horizontalHeader().setStretchLastSection(True)
+        
         self.setShowGrid(False)
         #self.setDragDropMode(self.InternalMove)
         #self.setDragDropOverwriteMode(False)
 
         # Set our custom style - this draws the drop indicator across the whole row
         self.setStyle(MProxyStyle())
-
-        self.model =  MItemModel()
-        self.setModel(self.model)
 
 class ChordTableView(MTableView):
 
@@ -60,6 +62,8 @@ class ChordTableView(MTableView):
 
             self.model.appendRow(rowList)
 
+        self.resizeColumnsToContents()
+
 class BlockTableView(MTableView):
 
     def __init__(self, parent):
@@ -76,3 +80,5 @@ class BlockTableView(MTableView):
                 item.setDropEnabled(False)
 
             self.model.appendRow(rowList)
+        
+        self.resizeColumnsToContents()
