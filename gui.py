@@ -9,7 +9,7 @@ Created on Wed May 29 00:02:24 2019
 import sys, fitz, io, subprocess, os
 
 from PyQt5.QtWidgets import QApplication, QAction, QLabel, QDialogButtonBox, QDialog, QFileDialog, QMessageBox, QPushButton, QLineEdit, QCheckBox, QSpinBox, QDoubleSpinBox, QTableWidget, QTableWidgetItem, QTabWidget, QComboBox, QWidget, QScrollArea
-from PyQt5.QtCore import QFile, QObject
+from PyQt5.QtCore import QFile, QObject, Qt
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5 import uic
 from chordsheet.tableView import ChordTableView, BlockTableView , MItemModel, MProxyStyle
@@ -27,6 +27,8 @@ if getattr(sys, 'frozen', False):
     scriptDir = sys._MEIPASS
 else:
     scriptDir = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+
+QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 
 pdfmetrics.registerFont(TTFont('FreeSans', os.path.join(scriptDir, 'fonts', 'FreeSans.ttf')))
 if sys.platform == "darwin":
