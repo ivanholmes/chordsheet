@@ -1,24 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from sys import exit
-
 def parseFingering(fingering, instrument):
+	"""
+	Converts fingerings into the list format that Chord objects understand.
+	"""
 	if instrument == 'guitar':
 		numStrings = 6
-		if len(fingering) == numStrings:
+		if len(fingering) == numStrings: # if the fingering is entered in concise format e.g. xx4455
 			output = list(fingering)
-		else:
+		else: # if entered in long format e.g. x,x,10,10,11,11
 			output = [x for x in fingering.split(',')]
 		if len(output) == numStrings:
 			return output
 		else:
-			exit("Voicing <{v}> is malformed.".format(v=fingering))
+			raise Exception("Voicing <{}> is malformed.".format(fingering))
 	else:
 		return [fingering]
 
+# dictionary holding text to be replaced in chord names
 nameReplacements = { "b":"♭", "#":"♯" }
 
 def parseName(chordName):
+	"""
+	Replaces symbols in chord names.
+	"""
 	parsedName = chordName
 	for i, j in nameReplacements.items():
 		parsedName = parsedName.replace(i, j)

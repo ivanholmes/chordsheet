@@ -24,6 +24,8 @@ from chordsheet.document import Document, Style, Chord, Block
 from chordsheet.render import savePDF
 from chordsheet.parsers import parseFingering, parseName
 
+from _version import version
+
 # set the directory where our files are depending on whether we're running a pyinstaller binary or not
 if getattr(sys, 'frozen', False):
     scriptDir = sys._MEIPASS
@@ -66,6 +68,7 @@ class DocumentWindow(QMainWindow):
 
         self.UIFileLoader(str(os.path.join(scriptDir, 'ui','mainwindow.ui')))
         self.UIInitStyle()
+        self.updateChordDict()
 
         self.setCentralWidget(self.window.centralWidget)
         self.setMenuBar(self.window.menuBar)
@@ -73,7 +76,7 @@ class DocumentWindow(QMainWindow):
 
         if filename:
             try:
-                self.doc.loadXML(filename)
+                self.openFile(filename)
             except:
                 UnreadableMessageBox().exec()
 
@@ -103,6 +106,11 @@ class DocumentWindow(QMainWindow):
         self.window.actionSave_PDF.triggered.connect(self.menuFileSavePDFAction)
         self.window.actionPrint.triggered.connect(self.menuFilePrintAction)
         self.window.actionClose.triggered.connect(self.menuFileCloseAction)
+        self.window.actionUndo.triggered.connect(self.menuEditUndoAction)
+        self.window.actionRedo.triggered.connect(self.menuEditRedoAction)
+        self.window.actionCut.triggered.connect(self.menuEditCutAction)
+        self.window.actionCopy.triggered.connect(self.menuEditCopyAction)
+        self.window.actionPaste.triggered.connect(self.menuEditPasteAction)
 
         self.window.actionNew.setShortcut(QKeySequence.New)
         self.window.actionOpen.setShortcut(QKeySequence.Open)
@@ -213,12 +221,15 @@ class DocumentWindow(QMainWindow):
     def menuFileOpenAction(self):
         filePath = QFileDialog.getOpenFileName(self.window.tabWidget, 'Open file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")
         if filePath[0]:
-            self.currentFilePath = filePath[0]
-            self.doc.loadXML(filePath[0])
-            self.lastDoc = copy(self.doc)
-            self.setPath("workingPath", self.currentFilePath)
-            self.UIInitDocument()
-            self.updatePreview()
+            self.openFile(filePath[0])
+
+    def openFile(self, filePath):
+        self.currentFilePath = filePath
+        self.doc.loadXML(self.currentFilePath)
+        self.lastDoc = copy(self.doc)
+        self.setPath("workingPath", self.currentFilePath)
+        self.UIInitDocument()
+        self.updatePreview()
     
     def menuFileSaveAction(self):
         self.updateDocument()
@@ -259,7 +270,37 @@ class DocumentWindow(QMainWindow):
         self.saveWarning()
 
     def menuFileAboutAction(self):
-        aboutDialog = QMessageBox.information(self, "About", "Chordsheet © Ivan Holmes, 2019", buttons = QMessageBox.Ok, defaultButton = QMessageBox.Ok)
+        aDialog = AboutDialog()
+
+    def menuEditUndoAction(self):
+        try:
+            QApplication.focusWidget().undo()
+        except:
+            pass
+
+    def menuEditRedoAction(self):
+        try:
+            QApplication.focusWidget().redo()
+        except:
+            pass
+
+    def menuEditCutAction(self):
+        try:
+            QApplication.focusWidget().cut()
+        except:
+            pass
+
+    def menuEditCopyAction(self):
+        try:
+            QApplication.focusWidget().copy()
+        except:
+            pass
+
+    def menuEditPasteAction(self):
+        try:
+            QApplication.focusWidget().paste()
+        except:
+            pass
 
     def saveWarning(self):
         """
@@ -297,7 +338,8 @@ class DocumentWindow(QMainWindow):
         self.window.guitarVoicingLineEdit.clear()
 
     def updateChordDict(self):
-        self.chordDict = {c.name:c for c in self.doc.chordList}
+        self.chordDict = {'None':None}
+        self.chordDict.update({c.name:c for c in self.doc.chordList})
         self.window.blockChordComboBox.clear()
         self.window.blockChordComboBox.addItems(list(self.chordDict.keys()))
 
@@ -312,27 +354,51 @@ class DocumentWindow(QMainWindow):
         self.updateChordDict()
     
     def addChordAction(self):
+        success = False
         self.updateChords()
 
-        self.doc.chordList.append(Chord(parseName(self.window.chordNameLineEdit.text())))
-        if self.window.guitarVoicingLineEdit.text():
-            self.doc.chordList[-1].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
-
-        self.window.chordTableView.populate(self.doc.chordList)
-        self.clearChordLineEdits()
-        self.updateChordDict()
-
-    def updateChordAction(self):
-        if self.window.chordTableView.selectionModel().hasSelection():
-            self.updateChords()
-            row = self.window.chordTableView.selectionModel().currentIndex().row()
-            self.doc.chordList[row] = Chord(parseName(self.window.chordNameLineEdit.text()))
+        cName = parseName(self.window.chordNameLineEdit.text())
+        if cName:
+            self.doc.chordList.append(Chord(cName))
             if self.window.guitarVoicingLineEdit.text():
-                self.doc.chordList[-1].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
+                try:
+                    self.doc.chordList[-1].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
+                    success = True
+                except:
+                    VoicingWarningMessageBox().exec()
+            else:
+                success = True
+        else:
+            NameWarningMessageBox().exec()
 
+        if success == True:
             self.window.chordTableView.populate(self.doc.chordList)
             self.clearChordLineEdits()
             self.updateChordDict()
+
+    def updateChordAction(self):
+        success = False
+        if self.window.chordTableView.selectionModel().hasSelection():
+            self.updateChords()
+            row = self.window.chordTableView.selectionModel().currentIndex().row()
+            cName = parseName(self.window.chordNameLineEdit.text())
+            if cName:
+                self.doc.chordList[row] = Chord(cName)
+                if self.window.guitarVoicingLineEdit.text():
+                    try:
+                        self.doc.chordList[-1].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
+                        success = True
+                    except:
+                        VoicingWarningMessageBox().exec()
+                else:
+                    success = True
+            else:
+                NameWarningMessageBox().exec()
+            
+            if success == True:
+                self.window.chordTableView.populate(self.doc.chordList)
+                self.clearChordLineEdits()
+                self.updateChordDict()
     
     def clearBlockLineEdits(self):
         self.window.blockLengthLineEdit.clear()
@@ -351,23 +417,38 @@ class DocumentWindow(QMainWindow):
     def addBlockAction(self):
         self.updateBlocks()
 
-        self.doc.blockList.append(Block(self.window.blockLengthLineEdit.text(),
-                                        chord = self.chordDict[self.window.blockChordComboBox.currentText()],
-                                        notes = (self.window.blockNotesLineEdit.text() if not "" else None)))
+        try:
+            bLength = int(self.window.blockLengthLineEdit.text())
+        except:
+            bLength = False
 
-        self.window.blockTableView.populate(self.doc.blockList)
-        self.clearBlockLineEdits()
+        if bLength:
+            self.doc.blockList.append(Block(bLength,
+                                            chord = self.chordDict[self.window.blockChordComboBox.currentText()],
+                                            notes = (self.window.blockNotesLineEdit.text() if not "" else None)))
+            self.window.blockTableView.populate(self.doc.blockList)
+            self.clearBlockLineEdits()
+        else:
+            LengthWarningMessageBox().exec()
 
     def updateBlockAction(self):
         if self.window.blockTableView.selectionModel().hasSelection():
             self.updateBlocks()
-            row = self.window.blockTableView.selectionModel().currentIndex().row()
-            self.doc.blockList[row] = (Block(self.window.blockLengthLineEdit.text(),
-                                         chord = self.chordDict[self.window.blockChordComboBox.currentText()],
-                                         notes = (self.window.blockNotesLineEdit.text() if not "" else None)))
 
-            self.window.blockTableView.populate(self.doc.blockList)
-            self.clearBlockLineEdits()
+            try:
+                bLength = int(self.window.blockLengthLineEdit.text())
+            except:
+                bLength = False
+
+            row = self.window.blockTableView.selectionModel().currentIndex().row()
+            if bLength:
+                self.doc.blockList[row] = (Block(bLength,
+                                                 chord = self.chordDict[self.window.blockChordComboBox.currentText()],
+                                                 notes = (self.window.blockNotesLineEdit.text() if not "" else None)))
+                self.window.blockTableView.populate(self.doc.blockList)
+                self.clearBlockLineEdits()
+            else:
+                LengthWarningMessageBox().exec()
     
     def generateAction(self):
         self.updateDocument()
@@ -378,12 +459,13 @@ class DocumentWindow(QMainWindow):
         savePDF(self.doc, self.style, self.currentPreview)
         
         pdfView = fitz.Document(stream=self.currentPreview, filetype='pdf')
-        pix = pdfView[0].getPixmap(alpha = False)
+        pix = pdfView[0].getPixmap(matrix = fitz.Matrix(4, 4), alpha = False) # render at 4x resolution and scale
 
         fmt = QImage.Format_RGB888
         qtimg = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
 
-        self.window.imageLabel.setPixmap(QPixmap.fromImage(qtimg))
+        self.window.imageLabel.setPixmap(QPixmap.fromImage(qtimg).scaled(self.window.scrollArea.width()-30, self.window.scrollArea.height()-30, Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation))
+        # -30 because the scrollarea has a margin of 12 each side (extra for safety)
         self.window.imageLabel.repaint() # necessary on Mojave with PyInstaller (or previous contents will be shown)
     
     def updateTitleBar(self):
@@ -406,17 +488,7 @@ class DocumentWindow(QMainWindow):
         blockTableList = []
         for i in range(self.window.blockTableView.model.rowCount()):
             blockLength = int(self.window.blockTableView.model.item(i, 1).text())
-            blockChordName = parseName(self.window.blockTableView.model.item(i, 0).text())
-            if blockChordName:
-                blockChord = None
-                for c in self.doc.chordList:
-                    if c.name == blockChordName:
-                        blockChord = c
-                        break
-                if blockChord is None:
-                    exit("Chord {c} does not match any chord in {l}.".format(c=blockChordName, l=self.doc.chordList))
-            else:
-                blockChord = None
+            blockChord = self.chordDict[(self.window.blockTableView.model.item(i, 0).text() if self.window.blockTableView.model.item(i, 0).text() else "None")]
             blockNotes = self.window.blockTableView.model.item(i, 2).text() if self.window.blockTableView.model.item(i, 2).text() else None
             blockTableList.append(Block(blockLength, chord=blockChord, notes=blockNotes))
         
@@ -469,6 +541,28 @@ class GuitarDialog(QDialog):
         else:
             return None
 
+class AboutDialog(QDialog):
+    """
+    Dialogue showing information about the program.
+    """
+    def __init__(self):
+        super().__init__()
+        self.UIFileLoader(str(os.path.join(scriptDir, 'ui','aboutdialog.ui')))
+        
+        icon = QImage(str(os.path.join(scriptDir, 'ui','icon.png')))
+        self.dialog.iconLabel.setPixmap(QPixmap.fromImage(icon).scaled(self.dialog.iconLabel.width(), self.dialog.iconLabel.height(), Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation))
+
+        self.dialog.versionLabel.setText("Version " + version)
+
+        self.dialog.exec()
+        
+    def UIFileLoader(self, ui_file):
+        ui_file = QFile(ui_file)
+        ui_file.open(QFile.ReadOnly)
+ 
+        self.dialog = uic.loadUi(ui_file)
+        ui_file.close()
+
 class UnsavedMessageBox(QMessageBox):
     """
     Message box to alert the user of unsaved changes and allow them to choose how to act.
@@ -476,6 +570,7 @@ class UnsavedMessageBox(QMessageBox):
     def __init__(self):
         super().__init__()
 
+        self.setIcon(QMessageBox.Question)
         self.setWindowTitle("Unsaved changes")
         self.setText("The document has been modified.")
         self.setInformativeText("Do you want to save your changes?")
@@ -484,14 +579,57 @@ class UnsavedMessageBox(QMessageBox):
 
 class UnreadableMessageBox(QMessageBox):
     """
-    Message box to inform the user that the chosen file cannot be opened.
+    Message box to warn the user that the chosen file cannot be opened.
     """
     def __init__(self):
         super().__init__()
 
+        self.setIcon(QMessageBox.Warning)
         self.setWindowTitle("File cannot be opened")
         self.setText("The file you have selected cannot be opened.")
         self.setInformativeText("Please make sure it is in the right format.")
+        self.setStandardButtons(QMessageBox.Ok)
+        self.setDefaultButton(QMessageBox.Ok)
+
+class NameWarningMessageBox(QMessageBox):
+    """
+    Message box to warn the user that a chord must have a name
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.setIcon(QMessageBox.Warning)
+        self.setWindowTitle("Unnamed chord")
+        self.setText("Chords must have a name.")
+        self.setInformativeText("Please give your chord a name and try again.")
+        self.setStandardButtons(QMessageBox.Ok)
+        self.setDefaultButton(QMessageBox.Ok)
+
+class VoicingWarningMessageBox(QMessageBox):
+    """
+    Message box to warn the user that the voicing entered could not be parsed
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.setIcon(QMessageBox.Warning)
+        self.setWindowTitle("Malformed voicing")
+        self.setText("The voicing you entered was not understood and has not been applied.")
+        self.setInformativeText("Please try re-entering it in the correct format.")
+        self.setStandardButtons(QMessageBox.Ok)
+        self.setDefaultButton(QMessageBox.Ok)
+
+class LengthWarningMessageBox(QMessageBox):
+    """
+    Message box to warn the user that a block must have a length
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.setIcon(QMessageBox.Warning)
+        self.setWindowTitle("Block without valid length")
+        self.setText("Blocks must have a whole number length.")
+        self.setInformativeText("Please enter a valid length for your block and try again.")
         self.setStandardButtons(QMessageBox.Ok)
         self.setDefaultButton(QMessageBox.Ok)
 

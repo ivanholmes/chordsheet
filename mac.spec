@@ -36,7 +36,7 @@ exe = EXE(pyz,
           console=False )
 app = BUNDLE(exe,
              name='Chordsheet.app',
-             icon=None,
+             icon='ui/icon.icns',
              bundle_identifier=None,
              info_plist={
                     'NSPrincipalClass': 'NSApplication',

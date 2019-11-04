@@ -62,7 +62,6 @@ class ChordTableView(MTableView):
 
             self.model.appendRow(rowList)
 
-        self.resizeColumnsToContents()
 
 class BlockTableView(MTableView):
 
@@ -80,5 +79,3 @@ class BlockTableView(MTableView):
                 item.setDropEnabled(False)
 
             self.model.appendRow(rowList)
-        
-        self.resizeColumnsToContents()
