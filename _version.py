@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 
 appName = "Chordsheet"
-version = '0.4'
+version = '0.3.1'
