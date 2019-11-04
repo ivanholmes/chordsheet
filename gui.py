@@ -243,13 +243,13 @@ class DocumentWindow(QMainWindow):
             filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
         else:
             filePath = self.currentFilePath
-        saveFile(filePath)
+        self.saveFile(filePath)
     
     def menuFileSaveAsAction(self):
         self.updateDocument()
         filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
         if filePath:
-            saveFile(filePath)
+            self.saveFile(filePath)
             self.updateTitleBar() # as we now have a new filename
 
     def saveFile(self, filePath):
