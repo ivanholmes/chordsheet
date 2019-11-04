@@ -197,7 +197,8 @@ class DocumentWindow(QMainWindow):
 
     def blockClickedAction(self, index):
         # set the controls to the values from the selected block
-        self.window.blockChordComboBox.setCurrentText(self.window.blockTableView.model.item(index.row(), 0).text())
+        bChord = self.window.blockTableView.model.item(index.row(), 0).text()
+        self.window.blockChordComboBox.setCurrentText(bChord if bChord else "None")
         self.window.blockLengthLineEdit.setText(self.window.blockTableView.model.item(index.row(), 1).text())
         self.window.blockNotesLineEdit.setText(self.window.blockTableView.model.item(index.row(), 2).text())
 
@@ -324,7 +325,7 @@ class DocumentWindow(QMainWindow):
             wantToSave = UnsavedMessageBox().exec()
                 
             if wantToSave == QMessageBox.Save:
-                if not (hasattr(self, 'currentFilePath') and self.currentFilePath):
+                if not (self.currentFilePath):
                     filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', str(os.path.expanduser("~")), "Chordsheet ML files (*.xml *.cml)")
                     self.currentFilePath = filePath[0]
                 self.doc.saveXML(self.currentFilePath)
