@@ -9,6 +9,7 @@ defaultTimeSignature = 4
 
 class Style:
     def __init__(self, **kwargs):
+        # set up the style using sane defaults
         self.unit = kwargs.get('unit', mm)
         
         self.pageSize = kwargs.get('pageSize', A4)
@@ -18,7 +19,7 @@ class Style:
         self.lineSpacing = kwargs.get('lineSpacing', 1.15)
         self.separatorSize = kwargs.get('separatorSize', 5)
         
-        self.useIncludedFont = False
+        self.useIncludedFont = True
         
         self.stringHzSp = 20*self.unit
         self.stringHzGap = 2*self.unit
@@ -72,6 +73,9 @@ class Document:
         return NotImplemented
         
     def loadXML(self, filepath):
+        """
+        Read an XML file and import its contents.
+        """
         xmlDoc = ET.parse(filepath)
         root = xmlDoc.getroot()
         
@@ -105,11 +109,17 @@ class Document:
         self.timeSignature = (int(root.find('timesignature').text) if root.find('timesignature') is not None else defaultTimeSignature)
         
     def newFromXML(filepath):
+        """
+        Create a new Document object directly from an XML file.
+        """
         doc = Document()
         doc.loadXML(filepath)
         return doc
     
     def saveXML(self, filepath):
+        """
+        Write the contents of the Document object to an XML file.
+        """
         root = ET.Element("chordsheet")
         
         ET.SubElement(root, "title").text = self.title
@@ -145,6 +155,3 @@ class Document:
             
         tree = ET.ElementTree(root)
         tree.write(filepath)
-            
-        
-        

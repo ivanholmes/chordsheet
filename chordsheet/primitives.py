@@ -5,6 +5,9 @@ from reportlab.lib.units import mm
 from reportlab.graphics.shapes import *
 
 def writeText(currentCanvas, style, string, size, vpos, **kwargs):
+	"""
+	Wrapper function to conveniently write text according to my requirements...
+	"""
 	margin = style.leftMargin*style.unit
 	
 	align = kwargs.get('align', 'centre')
@@ -28,11 +31,17 @@ def writeText(currentCanvas, style, string, size, vpos, **kwargs):
 	return size*style.lineSpacing
 
 def drawHorizLine(currentCanvas, startpoint, endpoint, v_pos, h_origin, v_origin):
+	"""
+	Draw a horizontal line on the canvas taking origin point into account.
+	"""
 	x1 = h_origin+startpoint
 	x2 = h_origin+endpoint
 	currentCanvas.line(x1, v_pos, x2, v_pos)
 	
 def drawVertLine(currentCanvas, startpoint, endpoint, h_pos, h_origin, v_origin):
+	"""
+	Draw a vertical line on the canvas taking origin point into account.
+	"""
 	y1 = v_origin+startpoint
 	y2 = v_origin+endpoint
 	currentCanvas.line(h_pos, y1, h_pos, y2)

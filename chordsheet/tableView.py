@@ -14,8 +14,7 @@ class MProxyStyle(QtWidgets.QProxyStyle):
     def drawPrimitive(self, element, option, painter, widget=None):
         """
         Draw a line across the entire row rather than just the column
-        we're hovering over.  This may not always work depending on global
-        style.
+        we're hovering over.
         """
         if element == self.PE_IndicatorItemViewItemDrop and not option.rect.isNull():
             option_new = QtWidgets.QStyleOption(option)
@@ -26,7 +25,9 @@ class MProxyStyle(QtWidgets.QProxyStyle):
         super().drawPrimitive(element, option, painter, widget)
 
 class MTableView(QtWidgets.QTableView):
-
+    """
+    Subclass the built in TableView to customise it.
+    """
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -46,13 +47,18 @@ class MTableView(QtWidgets.QTableView):
         self.setStyle(MProxyStyle())
 
 class ChordTableView(MTableView):
-
+    """
+    Subclass MTableView to add properties just for the chord table.
+    """
     def __init__(self, parent):
         super().__init__(parent)
 
         self.model.setHorizontalHeaderLabels(['Chord', 'Voicing'])
 
     def populate(self, cList):
+        """
+        Fill the table from a list of Chord objects.
+        """
         self.model.removeRows(0, self.model.rowCount())
         for c in cList:
             rowList = [QtGui.QStandardItem(c.name), QtGui.QStandardItem(",".join(c.voicings['guitar'] if 'guitar' in c.voicings.keys() else ""))]
@@ -64,13 +70,18 @@ class ChordTableView(MTableView):
 
 
 class BlockTableView(MTableView):
-
+    """
+    Subclass MTableView to add properties just for the block table.
+    """
     def __init__(self, parent):
         super().__init__(parent)
 
         self.model.setHorizontalHeaderLabels(['Chord', 'Length', 'Notes'])
 
     def populate(self, bList):
+        """
+        Fill the table from a list of Block objects.
+        """
         self.model.removeRows(0, self.model.rowCount())
         for b in bList:
             rowList = [QtGui.QStandardItem((b.chord.name if b.chord else "")), QtGui.QStandardItem(str(b.length)), QtGui.QStandardItem(b.notes)]

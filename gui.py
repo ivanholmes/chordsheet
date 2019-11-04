@@ -24,7 +24,7 @@ from chordsheet.document import Document, Style, Chord, Block
 from chordsheet.render import savePDF
 from chordsheet.parsers import parseFingering, parseName
 
-from _version import version
+import _version
 
 # set the directory where our files are depending on whether we're running a pyinstaller binary or not
 if getattr(sys, 'frozen', False):
@@ -191,10 +191,12 @@ class DocumentWindow(QMainWindow):
             self.style.useIncludedFont = False
             
     def chordClickedAction(self, index):
+        # set the controls to the values from the selected chord
         self.window.chordNameLineEdit.setText(self.window.chordTableView.model.item(index.row(), 0).text())
         self.window.guitarVoicingLineEdit.setText(self.window.chordTableView.model.item(index.row(), 1).text())
 
     def blockClickedAction(self, index):
+        # set the controls to the values from the selected block
         self.window.blockChordComboBox.setCurrentText(self.window.blockTableView.model.item(index.row(), 0).text())
         self.window.blockLengthLineEdit.setText(self.window.blockTableView.model.item(index.row(), 1).text())
         self.window.blockNotesLineEdit.setText(self.window.blockTableView.model.item(index.row(), 2).text())
@@ -212,18 +214,21 @@ class DocumentWindow(QMainWindow):
         return settings.setValue(value, os.path.dirname(fullpath))
 
     def menuFileNewAction(self):
-        self.doc = Document()
-        self.lastDoc = copy(self.doc)
-        self.currentFilePath = None
+        self.doc = Document() # new document object
+        self.lastDoc = copy(self.doc) # copy this object as reference to check against on quitting
+        self.currentFilePath = None # reset file path (this document hasn't been saved yet)
         self.UIInitDocument()
         self.updatePreview()
     
     def menuFileOpenAction(self):
-        filePath = QFileDialog.getOpenFileName(self.window.tabWidget, 'Open file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")
-        if filePath[0]:
-            self.openFile(filePath[0])
+        filePath = QFileDialog.getOpenFileName(self.window.tabWidget, 'Open file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
+        if filePath:
+            self.openFile(filePath)
 
     def openFile(self, filePath):
+        """
+        Opens a file from a file path and sets up the window accordingly.
+        """
         self.currentFilePath = filePath
         self.doc.loadXML(self.currentFilePath)
         self.lastDoc = copy(self.doc)
@@ -233,30 +238,35 @@ class DocumentWindow(QMainWindow):
     
     def menuFileSaveAction(self):
         self.updateDocument()
-        if not (hasattr(self, 'currentFilePath') and self.currentFilePath):
-            filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")
-            self.currentFilePath = filePath[0]
+        if not self.currentFilePath:
+            filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
+        else:
+            filePath = self.currentFilePath
+        saveFile(filePath)
+    
+    def menuFileSaveAsAction(self):
+        self.updateDocument()
+        filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
+        if filePath:
+            saveFile(filePath)
+            self.updateTitleBar() # as we now have a new filename
+
+    def saveFile(self, filePath):
+        """
+        Saves a file to given file path and sets up environment.
+        """
+        self.currentFilePath = filePath
         self.doc.saveXML(self.currentFilePath)
         self.lastDoc = copy(self.doc)
         self.setPath("workingPath", self.currentFilePath)
     
-    def menuFileSaveAsAction(self):
-        self.updateDocument()
-        filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")
-        if filePath[0]:
-            self.currentFilePath = filePath[0]
-            self.doc.saveXML(self.currentFilePath)
-            self.lastDoc = copy(self.doc)
-            self.setPath("workingPath", self.currentFilePath)
-            self.updateTitleBar() # as we now have a new filename
-    
     def menuFileSavePDFAction(self):
         self.updateDocument()
         self.updatePreview()
-        filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("lastExportPath"), "PDF files (*.pdf)")
-        if filePath[0]:
-            savePDF(d, s, filePath[0])
-            self.setPath("lastExportPath", filePath[0])
+        filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("lastExportPath"), "PDF files (*.pdf)")[0]
+        if filePath:
+            savePDF(d, s, filePath)
+            self.setPath("lastExportPath", filePath)
     
     def menuFilePrintAction(self):
         if sys.platform == "darwin":
@@ -274,9 +284,9 @@ class DocumentWindow(QMainWindow):
 
     def menuEditUndoAction(self):
         try:
-            QApplication.focusWidget().undo()
+            QApplication.focusWidget().undo() # see if the built in widget supports it
         except:
-            pass
+            pass # if not just fail silently
 
     def menuEditRedoAction(self):
         try:
@@ -335,9 +345,12 @@ class DocumentWindow(QMainWindow):
         self.window.chordNameLineEdit.clear()
         self.window.guitarVoicingLineEdit.clear()
         self.window.chordNameLineEdit.repaint() # necessary on Mojave with PyInstaller (or previous contents will be shown)
-        self.window.guitarVoicingLineEdit.clear()
+        self.window.guitarVoicingLineEdit.repaint()
 
     def updateChordDict(self):
+        """
+        Updates the dictionary used to generate the Chord menu (on the block tab)
+        """
         self.chordDict = {'None':None}
         self.chordDict.update({c.name:c for c in self.doc.chordList})
         self.window.blockChordComboBox.clear()
@@ -354,7 +367,7 @@ class DocumentWindow(QMainWindow):
         self.updateChordDict()
     
     def addChordAction(self):
-        success = False
+        success = False # initialise
         self.updateChords()
 
         cName = parseName(self.window.chordNameLineEdit.text())
@@ -363,22 +376,22 @@ class DocumentWindow(QMainWindow):
             if self.window.guitarVoicingLineEdit.text():
                 try:
                     self.doc.chordList[-1].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
-                    success = True
+                    success = True # chord successfully parsed
                 except:
-                    VoicingWarningMessageBox().exec()
+                    VoicingWarningMessageBox().exec() # Voicing is malformed,  warn user
             else:
-                success = True
+                success = True # chord successfully parsed
         else:
-            NameWarningMessageBox().exec()
+            NameWarningMessageBox().exec() # Chord has no name, warn user
 
-        if success == True:
+        if success == True: # if chord was parsed properly
             self.window.chordTableView.populate(self.doc.chordList)
             self.clearChordLineEdits()
             self.updateChordDict()
 
     def updateChordAction(self):
-        success = False
-        if self.window.chordTableView.selectionModel().hasSelection():
+        success = False # see comments above
+        if self.window.chordTableView.selectionModel().hasSelection(): # check for selection
             self.updateChords()
             row = self.window.chordTableView.selectionModel().currentIndex().row()
             cName = parseName(self.window.chordNameLineEdit.text())
@@ -418,21 +431,21 @@ class DocumentWindow(QMainWindow):
         self.updateBlocks()
 
         try:
-            bLength = int(self.window.blockLengthLineEdit.text())
+            bLength = int(self.window.blockLengthLineEdit.text()) # can the value entered for block length be cast as an integer
         except:
             bLength = False
 
-        if bLength:
+        if bLength: # create the block
             self.doc.blockList.append(Block(bLength,
                                             chord = self.chordDict[self.window.blockChordComboBox.currentText()],
                                             notes = (self.window.blockNotesLineEdit.text() if not "" else None)))
             self.window.blockTableView.populate(self.doc.blockList)
             self.clearBlockLineEdits()
         else:
-            LengthWarningMessageBox().exec()
+            LengthWarningMessageBox().exec() # show warning that length was not entered or in wrong format
 
     def updateBlockAction(self):
-        if self.window.blockTableView.selectionModel().hasSelection():
+        if self.window.blockTableView.selectionModel().hasSelection(): # check for selection
             self.updateBlocks()
 
             try:
@@ -455,6 +468,9 @@ class DocumentWindow(QMainWindow):
         self.updatePreview()
 
     def updatePreview(self):
+        """
+        Update the preview shown by rendering a new PDF and drawing it to the scroll area.
+        """
         self.currentPreview = io.BytesIO()
         savePDF(self.doc, self.style, self.currentPreview)
         
@@ -469,13 +485,18 @@ class DocumentWindow(QMainWindow):
         self.window.imageLabel.repaint() # necessary on Mojave with PyInstaller (or previous contents will be shown)
     
     def updateTitleBar(self):
-        appName = "Chordsheet"
+        """
+        Update the application's title bar to reflect the current document.
+        """
         if self.currentFilePath:
-            self.setWindowTitle(appName + " – " + os.path.basename(self.currentFilePath))
+            self.setWindowTitle(_version.appName + " – " + os.path.basename(self.currentFilePath))
         else:
-            self.setWindowTitle(appName)
+            self.setWindowTitle(_version.appName)
 
     def updateChords(self):
+        """
+        Update the chord list by reading the table.
+        """
         chordTableList = []
         for i in range(self.window.chordTableView.model.rowCount()):
             chordTableList.append(Chord(parseName(self.window.chordTableView.model.item(i, 0).text()))),
@@ -485,6 +506,9 @@ class DocumentWindow(QMainWindow):
         self.doc.chordList = chordTableList
     
     def updateBlocks(self):
+        """
+        Update the block list by reading the table.
+        """
         blockTableList = []
         for i in range(self.window.blockTableView.model.rowCount()):
             blockLength = int(self.window.blockTableView.model.item(i, 1).text())
@@ -495,6 +519,9 @@ class DocumentWindow(QMainWindow):
         self.doc.blockList = blockTableList
 
     def updateDocument(self):
+        """
+        Update the Document object by reading values from the UI.
+        """
         self.doc.title = self.window.titleLineEdit.text() # Title can be empty string but not None
         self.doc.composer = (self.window.composerLineEdit.text() if self.window.composerLineEdit.text() else None)
         self.doc.arranger = (self.window.arrangerLineEdit.text() if self.window.arrangerLineEdit.text() else None)
@@ -529,6 +556,9 @@ class GuitarDialog(QDialog):
         ui_file.close()
 
     def getVoicing(self):
+        """
+        Show the dialogue and return the voicing that has been entered.
+        """
         if self.dialog.exec_() == QDialog.Accepted:
             result = [self.dialog.ELineEdit.text(),
                       self.dialog.ALineEdit.text(),
@@ -552,7 +582,7 @@ class AboutDialog(QDialog):
         icon = QImage(str(os.path.join(scriptDir, 'ui','icon.png')))
         self.dialog.iconLabel.setPixmap(QPixmap.fromImage(icon).scaled(self.dialog.iconLabel.width(), self.dialog.iconLabel.height(), Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation))
 
-        self.dialog.versionLabel.setText("Version " + version)
+        self.dialog.versionLabel.setText("Version " + _version.version)
 
         self.dialog.exec()
         
