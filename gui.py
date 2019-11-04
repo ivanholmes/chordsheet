@@ -401,7 +401,7 @@ class DocumentWindow(QMainWindow):
                 self.doc.chordList[row] = Chord(cName)
                 if self.window.guitarVoicingLineEdit.text():
                     try:
-                        self.doc.chordList[-1].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
+                        self.doc.chordList[row].voicings['guitar'] = parseFingering(self.window.guitarVoicingLineEdit.text(), 'guitar')
                         success = True
                     except:
                         VoicingWarningMessageBox().exec()
