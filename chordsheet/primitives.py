@@ -6,7 +6,7 @@ from reportlab.graphics.shapes import *
 
 def writeText(currentCanvas, style, string, size, vpos, **kwargs):
 	"""
-	Wrapper function to conveniently write text according to my requirements...
+	Wrapper function to conveniently write text and return how much vertical space it took up.
 	"""
 	margin = style.leftMargin*style.unit
 	

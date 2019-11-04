@@ -82,6 +82,7 @@ def guitarChart(currentCanvas, style, chordList, cur_pos):
 
 def chordProgression(currentCanvas, style, document, cur_pos):
 		margin = style.leftMargin*style.unit
+		unitWidth = style.unitWidth*style.unit
 		pagesize = style.pageSize
 		
 		title_height = writeText(currentCanvas, style, "Chord progression", 18, cur_pos, align="left")
@@ -93,11 +94,14 @@ def chordProgression(currentCanvas, style, document, cur_pos):
 		h_loc = 0
 		v_loc = 0
 		
-		maxWidth = int((((pagesize[0]-(2*margin))/style.unitWidth)//(document.timeSignature*2))*(document.timeSignature*2)) # use integer division to round maxWidth to nearest two bars
-		
+		if (unitWidth * document.timeSignature * 2) >= ((pagesize[0]-(2*margin) + 1)): # adding 1 to allow for rounding errors
+			raise Exception("Beat width (unitWidth) is too high. It is {current} pt and can be a maximum of {max} pt".format(current = unitWidth, max = ((pagesize[0]-(2*margin)/(document.timeSignature * 2)))))
+
+		maxWidth = int((((pagesize[0]-(2*margin))/unitWidth)//(document.timeSignature*2))*(document.timeSignature*2)) # use integer division to round maxWidth to nearest two bars
+
 		for u in range(maxWidth+1):
 			s = 0
-			x = u*style.unitWidth+margin
+			x = u*unitWidth+margin
 			if u % document.timeSignature == 0:
 				e = -style.beatsHeight
 			else: 
@@ -105,7 +109,7 @@ def chordProgression(currentCanvas, style, document, cur_pos):
 			drawVertLine(currentCanvas, s, e, x, h_origin, v_origin)
 			if u == maxWidth: # Avoid writing beat number after the final line
 				break
-			writeText(currentCanvas, style, str((u % document.timeSignature)+1), style.beatsFontSize, v_origin-style.beatsHeight, hpos=x+style.unitWidth/2)
+			writeText(currentCanvas, style, str((u % document.timeSignature)+1), style.beatsFontSize, v_origin-style.beatsHeight, hpos=x+unitWidth/2)
 			
 		parsedBlockList = splitBlocks(document.blockList, maxWidth)
 		
@@ -113,12 +117,12 @@ def chordProgression(currentCanvas, style, document, cur_pos):
 			if h_loc == maxWidth:
 				v_loc += 1
 				h_loc = 0
-			currentCanvas.rect(h_origin+(h_loc*style.unitWidth), v_origin+(v_loc*style.unitHeight), b.length*style.unitWidth, style.unitHeight)
+			currentCanvas.rect(h_origin+(h_loc*unitWidth), v_origin+(v_loc*style.unitHeight), b.length*unitWidth, style.unitHeight)
 			if b.notes is not None:
-				writeText(currentCanvas, style, b.notes, style.notesFontSize, v_origin+((v_loc+1)*style.unitHeight)-(1.3*style.notesFontSize), hpos=h_origin+((h_loc+b.length/2)*style.unitWidth))
+				writeText(currentCanvas, style, b.notes, style.notesFontSize, v_origin+((v_loc+1)*style.unitHeight)-(1.3*style.notesFontSize), hpos=h_origin+((h_loc+b.length/2)*unitWidth))
 			v_offset = ((v_loc*style.unitHeight)+style.unitHeight/2)-style.chordNameFontSize/2
 			if b.chord is not None:
-				writeText(currentCanvas, style, b.chord.name, style.chordNameFontSize, v_origin+v_offset, hpos=h_origin+((h_loc+b.length/2)*style.unitWidth))
+				writeText(currentCanvas, style, b.chord.name, style.chordNameFontSize, v_origin+v_offset, hpos=h_origin+((h_loc+b.length/2)*unitWidth))
 			h_loc += b.length
 		
 		return v_origin + (v_loc+1)*style.unitHeight + style.beatsHeight + title_height # calculate the height of the generated chart
@@ -139,12 +143,18 @@ def savePDF(document, style, pathToPDF):
 		
 		if document.title is not None:
 			curPos += writeText(c, style, document.title, 24, curPos)
+
+		if document.subtitle is not None:
+			curPos += writeText(c, style, document.subtitle, 18, curPos)
 		
 		if document.composer is not None:
 			curPos += writeText(c, style, "Composer: {c}".format(c = document.composer), 12, curPos)
 		
 		if document.arranger is not None:
 			curPos += writeText(c, style, "Arranger: {a}".format(a = document.arranger), 12, curPos)
+		
+		if document.tempo is not None:
+			curPos += writeText(c, style, "♩ = {t} bpm".format(t = document.tempo), 12, curPos, align = "left")
 		
 		curPos += style.separatorSize*style.unit
 			

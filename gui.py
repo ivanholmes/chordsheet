@@ -155,6 +155,7 @@ class DocumentWindow(QMainWindow):
         self.window.composerLineEdit.setText(self.doc.composer)
         self.window.arrangerLineEdit.setText(self.doc.arranger)
         self.window.timeSignatureSpinBox.setValue(self.doc.timeSignature)
+        self.window.tempoLineEdit.setText(self.doc.tempo)
         
         self.window.chordTableView.populate(self.doc.chordList)
         self.window.blockTableView.populate(self.doc.blockList)
@@ -177,6 +178,8 @@ class DocumentWindow(QMainWindow):
         
         self.window.fontComboBox.setDisabled(True)
         self.window.includedFontCheckBox.setChecked(True)
+
+        self.window.beatWidthLineEdit.setText(str(self.style.unitWidth))
         
     def pageSizeAction(self, index):
         self.pageSizeSelected = self.window.pageSizeComboBox.itemText(index)
@@ -529,15 +532,25 @@ class DocumentWindow(QMainWindow):
         Update the Document object by reading values from the UI.
         """
         self.doc.title = self.window.titleLineEdit.text() # Title can be empty string but not None
+        self.doc.subtitle = (self.window.subtitleLineEdit.text() if self.window.subtitleLineEdit.text() else None)
         self.doc.composer = (self.window.composerLineEdit.text() if self.window.composerLineEdit.text() else None)
         self.doc.arranger = (self.window.arrangerLineEdit.text() if self.window.arrangerLineEdit.text() else None)
-        
-        self.doc.timeSignature = int(self.window.timeSignatureSpinBox.value())
+        self.doc.tempo = (self.window.tempoLineEdit.text() if self.window.tempoLineEdit.text() else None)
+        self.doc.timeSignature = int(self.window.timeSignatureSpinBox.value()) if self.window.timeSignatureSpinBox.value() else self.doc.timeSignature
+
         self.style.pageSize = pageSizeDict[self.pageSizeSelected]
         self.style.unit = unitDict[self.unitSelected]
-        self.style.leftMargin = int(self.window.leftMarginLineEdit.text())
-        self.style.topMargin = int(self.window.topMarginLineEdit.text())
-        self.style.lineSpacing = float(self.window.lineSpacingDoubleSpinBox.value())
+        self.style.leftMargin = float(self.window.leftMarginLineEdit.text()) if self.window.leftMarginLineEdit.text() else self.style.leftMargin
+        self.style.topMargin = float(self.window.topMarginLineEdit.text()) if self.window.topMarginLineEdit.text() else self.style.topMargin
+        self.style.lineSpacing = float(self.window.lineSpacingDoubleSpinBox.value()) if self.window.lineSpacingDoubleSpinBox.value() else self.style.lineSpacing
+
+        # make sure the unit width isn't too wide to draw!
+        if self.window.beatWidthLineEdit.text():
+            if (self.style.pageSize[0] - 2 * self.style.leftMargin * mm) >= (float(self.window.beatWidthLineEdit.text()) * 2 * self.doc.timeSignature * mm):
+                self.style.unitWidth = float(self.window.beatWidthLineEdit.text())
+            else:
+                maxBeatWidth = (self.style.pageSize[0] - 2 * self.style.leftMargin * mm) / (2 * self.doc.timeSignature * mm)
+                warning = QMessageBox.warning(self, "Out of range", "Beat width is out of range. It can be a maximum of {}.".format(maxBeatWidth), buttons=QMessageBox.Ok, defaultButton=QMessageBox.Ok)
 
         self.updateChords()
         self.updateBlocks()

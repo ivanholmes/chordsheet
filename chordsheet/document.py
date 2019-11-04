@@ -18,14 +18,14 @@ class Style:
         self.font = kwargs.get('font', 'FreeSans')
         self.lineSpacing = kwargs.get('lineSpacing', 1.15)
         self.separatorSize = kwargs.get('separatorSize', 5)
+        self.unitWidth = kwargs.get('unitWidth', 10)
         
         self.useIncludedFont = True
         
         self.stringHzSp = 20*self.unit
         self.stringHzGap = 2*self.unit
         self.stringHeight = 5*self.unit
-        
-        self.unitWidth = 10*self.unit
+
         self.unitHeight = 20*self.unit
         self.beatsHeight = 5*self.unit
         
@@ -58,17 +58,19 @@ class Block:
         return NotImplemented 
 
 class Document:
-    def __init__(self, chordList=None, blockList=None, title=None, composer=None, arranger=None, timeSignature=defaultTimeSignature):
+    def __init__(self, chordList=None, blockList=None, title=None, subtitle=None, composer=None, arranger=None, timeSignature=defaultTimeSignature, tempo=None):
         self.chordList = chordList or []
         self.blockList = blockList or []
         self.title = title or '' # Do not initialise title empty
+        self.subtitle = subtitle
         self.composer = composer
         self.arranger = arranger
         self.timeSignature = timeSignature
+        self.tempo = tempo
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            textEqual = self.title == other.title and self.composer == other.composer and self.arranger == other.arranger and self.timeSignature == other.timeSignature # check all the text values for equality
+            textEqual = self.title == other.title and self.subtitle == other.subtitle and self.composer == other.composer and self.arranger == other.arranger and self.timeSignature == other.timeSignature and self.tempo == other.tempo # check all the text values for equality
             return textEqual and self.chordList == other.chordList and self.blockList == other.blockList
         return NotImplemented
         
@@ -104,9 +106,11 @@ class Document:
                 self.blockList.append(Block(int(b.find('length').text), chord=blockChord, notes=blockNotes))
         
         self.title = (root.find('title').text if root.find('title') is not None else '') # Do not initialise title empty
+        self.subtitle = (root.find('subtitle').text if root.find('subtitle') is not None else None)
         self.composer = (root.find('composer').text if root.find('composer') is not None else None)
         self.arranger = (root.find('arranger').text if root.find('arranger') is not None else None)
         self.timeSignature = (int(root.find('timesignature').text) if root.find('timesignature') is not None else defaultTimeSignature)
+        self.tempo = (root.find('tempo').text if root.find('tempo') is not None else None)
         
     def newFromXML(filepath):
         """
@@ -124,6 +128,9 @@ class Document:
         
         ET.SubElement(root, "title").text = self.title
         
+        if self.subtitle is not None:
+            ET.SubElement(root, "subtitle").text = self.subtitle
+
         if self.arranger is not None:
             ET.SubElement(root, "arranger").text = self.arranger
             
@@ -131,6 +138,9 @@ class Document:
             ET.SubElement(root, "composer").text = self.composer
             
         ET.SubElement(root, "timesignature").text = str(self.timeSignature)
+
+        if self.tempo is not None:
+            ET.SubElement(root, "tempo").text = self.tempo
         
         chordsElement = ET.SubElement(root, "chords")
         
