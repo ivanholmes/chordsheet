@@ -250,7 +250,6 @@ class DocumentWindow(QMainWindow):
         filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath("workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
         if filePath:
             self.saveFile(filePath)
-            self.updateTitleBar() # as we now have a new filename
 
     def saveFile(self, filePath):
         """
@@ -260,6 +259,7 @@ class DocumentWindow(QMainWindow):
         self.doc.saveXML(self.currentFilePath)
         self.lastDoc = copy(self.doc)
         self.setPath("workingPath", self.currentFilePath)
+        self.updateTitleBar() # as we may have a new filename
     
     def menuFileSavePDFAction(self):
         self.updateDocument()
@@ -472,18 +472,21 @@ class DocumentWindow(QMainWindow):
         """
         Update the preview shown by rendering a new PDF and drawing it to the scroll area.
         """
-        self.currentPreview = io.BytesIO()
-        savePDF(self.doc, self.style, self.currentPreview)
-        
-        pdfView = fitz.Document(stream=self.currentPreview, filetype='pdf')
-        pix = pdfView[0].getPixmap(matrix = fitz.Matrix(4, 4), alpha = False) # render at 4x resolution and scale
+        try:
+            self.currentPreview = io.BytesIO()
+            savePDF(self.doc, self.style, self.currentPreview)
 
-        fmt = QImage.Format_RGB888
-        qtimg = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
+            pdfView = fitz.Document(stream=self.currentPreview, filetype='pdf')
+            pix = pdfView[0].getPixmap(matrix = fitz.Matrix(4, 4), alpha = False) # render at 4x resolution and scale
 
-        self.window.imageLabel.setPixmap(QPixmap.fromImage(qtimg).scaled(self.window.scrollArea.width()-30, self.window.scrollArea.height()-30, Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation))
-        # -30 because the scrollarea has a margin of 12 each side (extra for safety)
-        self.window.imageLabel.repaint() # necessary on Mojave with PyInstaller (or previous contents will be shown)
+            fmt = QImage.Format_RGB888
+            qtimg = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
+
+            self.window.imageLabel.setPixmap(QPixmap.fromImage(qtimg).scaled(self.window.scrollArea.width()-30, self.window.scrollArea.height()-30, Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation))
+            # -30 because the scrollarea has a margin of 12 each side (extra for safety)
+            self.window.imageLabel.repaint() # necessary on Mojave with PyInstaller (or previous contents will be shown)
+        except:
+            warning = QMessageBox.warning(self, "Preview failed", "Could not update the preview.", buttons=QMessageBox.Ok, defaultButton=QMessageBox.Ok)
     
     def updateTitleBar(self):
         """
