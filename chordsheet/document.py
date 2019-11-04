@@ -35,14 +35,26 @@ class Style:
 class Chord:
     def __init__(self, name, **kwargs):
         self.name = name
+        self.voicings = {}
         for inst, fing in kwargs.items():
-            setattr(self, inst, fing)
+            self.voicings[inst] = fing
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name and self.voicings == other.voicings
+        return NotImplemented
+
 
 class Block:
     def __init__(self, length, **kwargs):
         self.length = length
         self.chord = kwargs.get('chord', None)
         self.notes = kwargs.get('notes', None)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.length == other.length and self.chord == other.chord and self.notes == other.notes
+        return NotImplemented 
 
 class Document:
     def __init__(self, chordList=None, blockList=None, title=None, composer=None, arranger=None, timeSignature=defaultTimeSignature):
@@ -52,6 +64,12 @@ class Document:
         self.composer = composer
         self.arranger = arranger
         self.timeSignature = timeSignature
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            textEqual = self.title == other.title and self.composer == other.composer and self.arranger == other.arranger and self.timeSignature == other.timeSignature # check all the text values for equality
+            return textEqual and self.chordList == other.chordList and self.blockList == other.blockList
+        return NotImplemented
         
     def loadXML(self, filepath):
         xmlDoc = ET.parse(filepath)
@@ -62,8 +80,7 @@ class Document:
             for c in root.findall('chords/chord'):
                 self.chordList.append(Chord(parseName(c.find('name').text)))
                 for v in c.findall('voicing'):
-                    setattr(self.chordList[-1], v.attrib['instrument'],
-                        parseFingering(v.text, v.attrib['instrument']))
+                    self.chordList[-1].voicings[v.attrib['instrument']] = parseFingering(v.text, v.attrib['instrument'])
         
         self.blockList = []
         if root.find('progression') is not None:
@@ -110,10 +127,11 @@ class Document:
         for c in self.chordList:
             chordElement = ET.SubElement(chordsElement, "chord")
             ET.SubElement(chordElement, "name").text = c.name
-            if hasattr(c, 'guitar'):
-                ET.SubElement(chordElement, "voicing", attrib={'instrument':'guitar'}).text = ','.join(c.guitar)
-            if hasattr(c, 'piano'):
-                ET.SubElement(chordElement, "voicing", attrib={'instrument':'piano'}).text = c.piano[0] # return first element of list as feature has not been implemented
+            for inst in c.voicings.keys():
+                if inst == 'guitar':
+                    ET.SubElement(chordElement, "voicing", attrib={'instrument':'guitar'}).text = ','.join(c.voicings['guitar'])
+                if inst == 'piano':
+                    ET.SubElement(chordElement, "voicing", attrib={'instrument':'piano'}).text = c.voicings['piano'][0] # return first element of list as feature has not been implemented
         
         progressionElement = ET.SubElement(root, "progression")
         

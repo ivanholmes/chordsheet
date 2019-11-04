@@ -48,9 +48,9 @@ def guitarChart(currentCanvas, style, chordList, cur_pos):
 	nstrings = 6
 	fontsize = 12
 	
-	guitarChordList = [[chordList[q].guitar[-(r+1)] for q in range(len(chordList)) if hasattr(chordList[q], 'guitar')] for r in range(6)]
-	guitarChordList.append([chordList[q].name for q in range(len(chordList)) if hasattr(chordList[q], 'guitar')])
-	
+	guitarChordList = [[chordList[q].voicings['guitar'][-(r+1)] for q in range(len(chordList)) if 'guitar' in chordList[q].voicings.keys()] for r in range(nstrings)]
+	guitarChordList.append([chordList[q].name for q in range(len(chordList)) if 'guitar' in chordList[q].voicings.keys()])
+
 	for i in range(nstrings+1): # i is the string currently being drawn
 		writeText(currentCanvas, style, ['e','B','G','D','A','E','Name'][i], fontsize, v_origin+(i*string_height), hpos=h_origin, align='right')
 
@@ -126,7 +126,7 @@ def chordProgression(currentCanvas, style, document, cur_pos):
 def guitarChartCheck(cL):
 	chordsPresent = False
 	for c in cL:
-		if hasattr(c, 'guitar'):
+		if 'guitar' in c.voicings.keys():
 			chordsPresent = True
 			break
 	return chordsPresent

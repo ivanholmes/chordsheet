@@ -55,7 +55,7 @@ class ChordTableView(MTableView):
     def populate(self, cList):
         self.model.removeRows(0, self.model.rowCount())
         for c in cList:
-            rowList = [QtGui.QStandardItem(c.name), QtGui.QStandardItem(",".join(c.guitar if hasattr(c, 'guitar') else ""))]
+            rowList = [QtGui.QStandardItem(c.name), QtGui.QStandardItem(",".join(c.voicings['guitar'] if 'guitar' in c.voicings.keys() else ""))]
             for item in rowList:
                 item.setEditable(False)
                 item.setDropEnabled(False)

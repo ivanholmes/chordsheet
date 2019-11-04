@@ -21,6 +21,7 @@ Chordsheet is alpha-grade software. At present, the program will crash readily g
 - PDF preview is blurry on high DPI monitors
 - Chord names and notes can spill out of their block if it's not big enough
 - Poor font handling (choice of either FreeSans or Helvetica Neue if installed)
+- No support for printing
 
 ## Dependencies
 Chordsheet depends on pymupdf (to show the preview), reportlab (to generate the PDF), and PyQt5 (for the GUI).
