@@ -358,14 +358,15 @@ class DocumentWindow(QMainWindow):
         self.window.blockChordComboBox.addItems(list(self.chordDict.keys()))
 
     def removeChordAction(self):
-        self.updateChords()
+        if self.window.chordTableView.selectionModel().hasSelection(): # check for selection
+            self.updateChords()
         
-        row = self.window.chordTableView.selectionModel().currentIndex().row()
-        self.doc.chordList.pop(row)
+            row = self.window.chordTableView.selectionModel().currentIndex().row()
+            self.doc.chordList.pop(row)
 
-        self.window.chordTableView.populate(self.doc.chordList)
-        self.clearChordLineEdits()
-        self.updateChordDict()
+            self.window.chordTableView.populate(self.doc.chordList)
+            self.clearChordLineEdits()
+            self.updateChordDict()
     
     def addChordAction(self):
         success = False # initialise
@@ -421,12 +422,13 @@ class DocumentWindow(QMainWindow):
         self.window.blockNotesLineEdit.repaint()
 
     def removeBlockAction(self):
-        self.updateBlocks()
+        if self.window.blockTableView.selectionModel().hasSelection(): # check for selection
+            self.updateBlocks()
 
-        row = self.window.blockTableView.selectionModel().currentIndex().row()
-        self.doc.blockList.pop(row)
+            row = self.window.blockTableView.selectionModel().currentIndex().row()
+            self.doc.blockList.pop(row)
 
-        self.window.blockTableView.populate(self.doc.blockList)
+            self.window.blockTableView.populate(self.doc.blockList)
     
     def addBlockAction(self):
         self.updateBlocks()
