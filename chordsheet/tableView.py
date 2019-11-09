@@ -1,15 +1,22 @@
-import sys
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui
+
 
 class MItemModel(QtGui.QStandardItemModel):
+    """
+    Special item model to ensure whole row is moved.
+    """
 
     def dropMimeData(self, data, action, row, col, parent):
         """
         Always move the entire row, and don't allow column "shifting"
         """
         return super().dropMimeData(data, action, row, 0, parent)
-	
+
+
 class MProxyStyle(QtWidgets.QProxyStyle):
+    """
+    Proxy style to change the appearance of the TableView.
+    """
 
     def drawPrimitive(self, element, option, painter, widget=None):
         """
@@ -24,32 +31,36 @@ class MProxyStyle(QtWidgets.QProxyStyle):
             option = option_new
         super().drawPrimitive(element, option, painter, widget)
 
+
 class MTableView(QtWidgets.QTableView):
     """
     Subclass the built in TableView to customise it.
     """
+
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.model =  MItemModel()
+        self.model = MItemModel()
         self.setModel(self.model)
 
         self.verticalHeader().hide()
         self.horizontalHeader().show()
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
         self.horizontalHeader().setStretchLastSection(True)
-        
+
         self.setShowGrid(False)
-        #self.setDragDropMode(self.InternalMove)
-        #self.setDragDropOverwriteMode(False)
+        # self.setDragDropMode(self.InternalMove)
+        # self.setDragDropOverwriteMode(False)
 
         # Set our custom style - this draws the drop indicator across the whole row
         self.setStyle(MProxyStyle())
+
 
 class ChordTableView(MTableView):
     """
     Subclass MTableView to add properties just for the chord table.
     """
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -61,7 +72,8 @@ class ChordTableView(MTableView):
         """
         self.model.removeRows(0, self.model.rowCount())
         for c in cList:
-            rowList = [QtGui.QStandardItem(c.name), QtGui.QStandardItem(",".join(c.voicings['guitar'] if 'guitar' in c.voicings.keys() else ""))]
+            rowList = [QtGui.QStandardItem(c.name), QtGui.QStandardItem(
+                ",".join(c.voicings['guitar'] if 'guitar' in c.voicings.keys() else ""))]
             for item in rowList:
                 item.setEditable(False)
                 item.setDropEnabled(False)
@@ -73,6 +85,7 @@ class BlockTableView(MTableView):
     """
     Subclass MTableView to add properties just for the block table.
     """
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -84,7 +97,8 @@ class BlockTableView(MTableView):
         """
         self.model.removeRows(0, self.model.rowCount())
         for b in bList:
-            rowList = [QtGui.QStandardItem((b.chord.name if b.chord else "")), QtGui.QStandardItem(str(b.length)), QtGui.QStandardItem(b.notes)]
+            rowList = [QtGui.QStandardItem((b.chord.name if b.chord else "")), QtGui.QStandardItem(
+                str(b.length)), QtGui.QStandardItem(b.notes)]
             for item in rowList:
                 item.setEditable(False)
                 item.setDropEnabled(False)

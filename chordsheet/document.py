@@ -29,6 +29,10 @@ class Style:
         self.unitHeight = 20*self.unit
         self.beatsHeight = 5*self.unit
         
+        self.titleFontSize = 24
+        self.subtitleFontSize = 18
+        self.creditsFontSize = 12
+        self.tempoFontSize = 12
         self.notesFontSize = 12
         self.chordNameFontSize = 18
         self.beatsFontSize = 12
@@ -112,7 +116,7 @@ class Document:
         self.timeSignature = (int(root.find('timesignature').text) if root.find('timesignature') is not None else defaultTimeSignature)
         self.tempo = (root.find('tempo').text if root.find('tempo') is not None else None)
         
-    def newFromXML(filepath):
+    def newFromXML(self, filepath):
         """
         Create a new Document object directly from an XML file.
         """

@@ -1,171 +1,290 @@
 # -*- coding: utf-8 -*-
 
+from math import trunc
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
-from reportlab.graphics.shapes import *
-from chordsheet.primitives import writeText, drawVertLine, drawHorizLine
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import BaseDocTemplate, Spacer, Paragraph, Flowable, Frame, PageTemplate
+
 from chordsheet.document import Block
 
+
+def writeText(canvas, style, string, size, vpos, width, **kwargs):
+    """
+    Wrapper function to conveniently write text and return how much vertical space it took up.
+    """
+
+    align = kwargs.get('align', 'centre')
+    if align == 'centre' or align == 'center':
+        hpos = kwargs.get('hpos', width/2)
+    elif align == 'left':
+        hpos = kwargs.get('hpos', 0)
+    elif align == 'right':
+        hpos = kwargs.get('hpos', width)
+    spacing = kwargs.get('spacing', style.lineSpacing)
+
+    canvas.setFont(style.font, size)
+
+    if align == 'centre' or align == 'center':
+        canvas.drawCentredString(hpos, vpos-(0.75*size*spacing), string)
+    elif align == 'left':
+        canvas.drawString(hpos, vpos-(0.75*size*spacing), string)
+    elif align == 'right':
+        canvas.drawString(hpos-canvas.stringWidth(string),
+                          vpos-(0.75*size*spacing), string)
+
+    return size*style.lineSpacing
+
+
 def splitBlocks(blockList, maxWidth):
-	h_loc = 0
-	splitBlockList = []
-	for i in range(len(blockList)):
-		c_orig = blockList[i].chord
-		n_orig = blockList[i].notes
-		if h_loc == maxWidth:
-			h_loc = 0
-		if h_loc+blockList[i].length > maxWidth:
-			lengthList = [maxWidth - h_loc]
-			while sum(lengthList) < blockList[i].length:
-				if blockList[i].length - sum(lengthList) >= maxWidth:
-					lengthList.append(maxWidth)
-				else:
-					lengthList.append(blockList[i].length - sum(lengthList))
-			
-			for l in lengthList:
-				splitBlockList.append(Block(l, chord=c_orig, notes=n_orig)) # create a block with the given length
+    h_loc = 0
+    splitBlockList = []
+    for i in range(len(blockList)):
+        c_orig = blockList[i].chord
+        n_orig = blockList[i].notes
+        if h_loc == maxWidth:
+            h_loc = 0
+        if h_loc+blockList[i].length > maxWidth:
+            lengthList = [maxWidth - h_loc]
+            while sum(lengthList) < blockList[i].length:
+                if blockList[i].length - sum(lengthList) >= maxWidth:
+                    lengthList.append(maxWidth)
+                else:
+                    lengthList.append(blockList[i].length - sum(lengthList))
 
-			h_loc = lengthList[-1]
-		else:
-			splitBlockList.append(blockList[i])
-			h_loc += blockList[i].length
-	return splitBlockList
+            for l in lengthList:
+                # create a block with the given length
+                splitBlockList.append(Block(l, chord=c_orig, notes=n_orig))
 
-def guitarChart(currentCanvas, style, chordList, cur_pos):
-	title_height = writeText(currentCanvas, style, "Guitar chord voicings", 18, cur_pos, align="left")
-	cur_pos += title_height
-	
-	string_hz_sp = style.stringHzSp
-	string_hz_gap = style.stringHzGap
-	string_height = style.stringHeight
-	
-	margin = style.leftMargin*style.unit
-	pagesize = style.pageSize
-	
-	chartmargin = 15*mm
-	v_origin = cur_pos + 2*mm
-	h_origin = margin + chartmargin
-	nstrings = 6
-	fontsize = 12
-	
-	guitarChordList = [[chordList[q].voicings['guitar'][-(r+1)] for q in range(len(chordList)) if 'guitar' in chordList[q].voicings.keys()] for r in range(nstrings)]
-	guitarChordList.append([chordList[q].name for q in range(len(chordList)) if 'guitar' in chordList[q].voicings.keys()])
+            h_loc = lengthList[-1]
+        else:
+            splitBlockList.append(blockList[i])
+            h_loc += blockList[i].length
+    return splitBlockList
 
-	for i in range(nstrings+1): # i is the string currently being drawn
-		writeText(currentCanvas, style, ['e','B','G','D','A','E','Name'][i], fontsize, v_origin+(i*string_height), hpos=h_origin, align='right')
 
-		for j in range(len(guitarChordList[-1])): # j is which chord (0 is first chord, 1 is 2nd etc)
-			if j == 0:
-				charpos = string_hz_sp/2
-				s = string_hz_gap
-				e = charpos-((currentCanvas.stringWidth(guitarChordList[i][j])/2)+string_hz_gap)
-				y = v_origin+(string_height*i)+string_height/2
-				drawHorizLine(currentCanvas, s, e, y, h_origin, v_origin)
-			else:
-				charpos = string_hz_sp*(j+0.5)
-				s = charpos-string_hz_sp+(lastWidth/2+string_hz_gap)
-				e = charpos-((currentCanvas.stringWidth(guitarChordList[i][j])/2)+string_hz_gap)
-				y = v_origin+(string_height*i)+string_height/2
-				drawHorizLine(currentCanvas, s, e, y, h_origin, v_origin)
-			
-			if j == len(guitarChordList[-1])-1:
-				s = charpos+(currentCanvas.stringWidth(guitarChordList[i][j])/2+string_hz_gap)
-				e = charpos+string_hz_sp/2
-				y = v_origin+(string_height*i)+string_height/2
-				drawHorizLine(currentCanvas, s, e, y, h_origin, v_origin)
+class GuitarChart(Flowable):
+    """
+    Flowable that draws a guitar chord voicing chart.
+    """
 
-			writeText(currentCanvas, style, guitarChordList[i][j], fontsize, v_origin+(i*string_height), hpos=h_origin+charpos)
-			
-			lastWidth = currentCanvas.stringWidth(guitarChordList[i][j])
-			
-	return (string_height*(nstrings+1)) + title_height # calculate the height of the block
+    def __init__(self, style, chordList):
+        self.style = style
+        self.guitarChordList = [
+            c for c in chordList if 'guitar' in c.voicings.keys()]
+        self.chartMargin = 15*mm
+        self.nStrings = 6
+        self.headingSize = 18
 
-def chordProgression(currentCanvas, style, document, cur_pos):
-		margin = style.leftMargin*style.unit
-		unitWidth = style.unitWidth*style.unit
-		pagesize = style.pageSize
-		
-		title_height = writeText(currentCanvas, style, "Chord progression", 18, cur_pos, align="left")
-		cur_pos += title_height
-		
-		v_origin = cur_pos + 2*mm + style.beatsHeight
-		h_origin = margin
-		
-		h_loc = 0
-		v_loc = 0
-		
-		if (unitWidth * document.timeSignature * 2) >= ((pagesize[0]-(2*margin) + 1)): # adding 1 to allow for rounding errors
-			raise Exception("Beat width (unitWidth) is too high. It is {current} pt and can be a maximum of {max} pt".format(current = unitWidth, max = ((pagesize[0]-(2*margin)/(document.timeSignature * 2)))))
+        self.spaceAfter = self.style.separatorSize * mm
 
-		maxWidth = int((((pagesize[0]-(2*margin))/unitWidth)//(document.timeSignature*2))*(document.timeSignature*2)) # use integer division to round maxWidth to nearest two bars
+    def wrap(self, availWidth, availHeight):
+        self.width = self.chartMargin + self.style.stringHzGap + self.style.stringHzSp * \
+            (len(self.guitarChordList))  # calculate the width of the flowable
+        self.height = self.style.stringHeight * \
+            (self.nStrings+1) + self.headingSize * \
+            self.style.lineSpacing + 2*mm    # and its height
+        return (self.width, self.height)
 
-		for u in range(maxWidth+1):
-			s = 0
-			x = u*unitWidth+margin
-			if u % document.timeSignature == 0:
-				e = -style.beatsHeight
-			else: 
-				e = -style.beatsHeight/2
-			drawVertLine(currentCanvas, s, e, x, h_origin, v_origin)
-			if u == maxWidth: # Avoid writing beat number after the final line
-				break
-			writeText(currentCanvas, style, str((u % document.timeSignature)+1), style.beatsFontSize, v_origin-style.beatsHeight, hpos=x+unitWidth/2)
-			
-		parsedBlockList = splitBlocks(document.blockList, maxWidth)
-		
-		for b in parsedBlockList:
-			if h_loc == maxWidth:
-				v_loc += 1
-				h_loc = 0
-			currentCanvas.rect(h_origin+(h_loc*unitWidth), v_origin+(v_loc*style.unitHeight), b.length*unitWidth, style.unitHeight)
-			if b.notes is not None:
-				writeText(currentCanvas, style, b.notes, style.notesFontSize, v_origin+((v_loc+1)*style.unitHeight)-(1.3*style.notesFontSize), hpos=h_origin+((h_loc+b.length/2)*unitWidth))
-			v_offset = ((v_loc*style.unitHeight)+style.unitHeight/2)-style.chordNameFontSize/2
-			if b.chord is not None:
-				writeText(currentCanvas, style, b.chord.name, style.chordNameFontSize, v_origin+v_offset, hpos=h_origin+((h_loc+b.length/2)*unitWidth))
-			h_loc += b.length
-		
-		return v_origin + (v_loc+1)*style.unitHeight + style.beatsHeight + title_height # calculate the height of the generated chart
+    def draw(self):
+        canvas = self.canv
+        title_height = writeText(canvas, self.style, "Guitar chord voicings",
+                                 self.headingSize, self.height, self.width, align="left")
+
+        chartmargin = self.chartMargin
+        v_origin = self.height - title_height - 2*mm
+        h_origin = chartmargin
+        self.nStrings = 6
+        fontsize = 12
+
+        stringList = [
+            [c.voicings['guitar'][-(r+1)] for c in self.guitarChordList] for r in range(self.nStrings)]
+        stringList.append([c.name for c in self.guitarChordList])
+
+        for i in range(self.nStrings+1):  # i is the string line currently being drawn
+            writeText(canvas, self.style, ['e', 'B', 'G', 'D', 'A', 'E', 'Name'][i], fontsize, v_origin-(
+                i*self.style.stringHeight), self.width, hpos=h_origin, align='right')
+
+            # j is which chord (0 is first chord, 1 is 2nd etc)
+            for j in range(len(stringList[-1])):
+                currentWidth = canvas.stringWidth(stringList[i][j])
+                if j == 0:
+                    x = self.style.stringHzGap + chartmargin
+                    l = self.style.stringHzSp/2 - self.style.stringHzGap - \
+                        ((currentWidth/2)) - self.style.stringHzGap
+                    y = v_origin-(self.style.stringHeight*i) - \
+                        self.style.stringHeight/2
+                    canvas.line(x, y, x+l, y)
+                else:
+                    x = chartmargin + self.style.stringHzSp * \
+                        (j-0.5)+(lastWidth/2+self.style.stringHzGap)
+                    l = self.style.stringHzSp - currentWidth / \
+                        2 - lastWidth/2 - self.style.stringHzGap*2
+                    y = v_origin-(self.style.stringHeight*i) - \
+                        self.style.stringHeight/2
+                    canvas.line(x, y, x+l, y)
+
+                if j == len(stringList[-1])-1:
+                    x = chartmargin + self.style.stringHzSp * \
+                        (j+0.5) + currentWidth/2 + self.style.stringHzGap
+                    l = self.style.stringHzSp/2 - currentWidth/2 - self.style.stringHzGap
+                    y = v_origin-(self.style.stringHeight*i) - \
+                        self.style.stringHeight/2
+                    canvas.line(x, y, x+l, y)
+
+                writeText(canvas, self.style, stringList[i][j], fontsize, v_origin-(
+                    i*self.style.stringHeight), self.width, hpos=chartmargin+self.style.stringHzSp*(j+0.5))
+
+                lastWidth = currentWidth
+
+
+class ChordProgression(Flowable):
+    """
+    Flowable that draws a chord progression made up of blocks.
+    """
+
+    def __init__(self, style, blockList, timeSignature):
+        self.style = style
+        self.blockList = blockList
+        self.timeSignature = timeSignature
+        self.headingSize = 18
+
+        self.spaceAfter = self.style.separatorSize * mm
+
+    def wrap(self, availWidth, availHeight):
+        self.widthInBeats = 2 * self.timeSignature * \
+            trunc((availWidth/(self.style.unitWidth*self.style.unit)) /
+                  (2*self.timeSignature))  # width of each line, in beats
+        self.width = self.widthInBeats * self.style.unitWidth * self.style.unit
+        self.height = self.headingSize * self.style.lineSpacing + 2 * mm + self.style.beatsHeight + \
+            self.style.unitHeight * \
+            sum([b.length for b in self.blockList]) / self.widthInBeats
+        return(self.width, self.height)
+
+    def draw(self):
+        canvas = self.canv
+        unitWidth = self.style.unitWidth*self.style.unit
+
+        title_height = writeText(canvas, self.style, "Chord progression",
+                                 self.headingSize, self.height, self.width, align="left")
+
+        v_origin = self.height - self.style.beatsHeight - title_height - 2*mm
+        h_origin = 0
+
+        h_loc = 0
+        v_loc = 0
+
+        maxWidth = self.widthInBeats
+
+        for u in range(maxWidth+1):
+            y = v_origin
+            x = u*unitWidth
+            if u % self.timeSignature == 0:
+                l = self.style.beatsHeight
+            else:
+                l = self.style.beatsHeight/2
+            canvas.line(x, y, x, y+l)
+            if u == maxWidth:  # Avoid writing beat number after the final line
+                break
+            writeText(canvas, self.style, str((u % self.timeSignature)+1), self.style.beatsFontSize,
+                      v_origin+self.style.beatsHeight, self.width, hpos=x+unitWidth/2)
+
+        parsedBlockList = splitBlocks(self.blockList, maxWidth)
+
+        for b in parsedBlockList:
+            if h_loc == maxWidth:
+                v_loc += 1
+                h_loc = 0
+            canvas.rect(h_loc*unitWidth, v_origin-((v_loc+1)*self.style.unitHeight),
+                        b.length*unitWidth, self.style.unitHeight)
+            if b.notes is not None:
+                writeText(canvas, self.style, b.notes, self.style.notesFontSize, v_origin-((v_loc+1)*self.style.unitHeight)+(
+                    1.3*self.style.notesFontSize), self.width, hpos=h_origin+((h_loc+b.length/2)*unitWidth))
+            v_offset = ((v_loc*self.style.unitHeight) +
+                        self.style.unitHeight/2)-self.style.chordNameFontSize/2
+            if b.chord is not None:
+                writeText(canvas, self.style, b.chord.name, self.style.chordNameFontSize,
+                          v_origin-v_offset, self.width, hpos=h_origin+((h_loc+b.length/2)*unitWidth))
+            h_loc += b.length
+
 
 def guitarChartCheck(cL):
-	chordsPresent = False
-	for c in cL:
-		if 'guitar' in c.voicings.keys():
-			chordsPresent = True
-			break
-	return chordsPresent
+    chordsPresent = False
+    for c in cL:
+        if 'guitar' in c.voicings.keys():
+            chordsPresent = True
+            break
+    return chordsPresent
+
+
+class TitleBlock(Flowable):
+    """
+    Flowable that draws the title and other text at the top of the document.
+    """
+
+    def __init__(self, style, document):
+        self.style = style
+        self.lS = style.lineSpacing
+
+        self.title = document.title
+        self.subtitle = document.subtitle
+        self.composer = document.composer
+        self.arranger = document.arranger
+        self.tempo = document.tempo
+
+        self.spaceAfter = self.style.separatorSize * mm
+
+    def wrap(self, availWidth, availHeight):
+        self.width = availWidth
+        self.height = sum([self.style.titleFontSize * self.lS if self.title else 0,
+                           self.style.subtitleFontSize * self.lS if self.subtitle else 0,
+                           self.style.creditsFontSize * self.lS if self.composer else 0,
+                           self.style.titleFontSize * self.lS if self.arranger else 0,
+                           self.style.tempoFontSize * self.lS if self.tempo else 0])
+        return(self.width, self.height)
+
+    def draw(self):
+        canvas = self.canv
+        curPos = self.height
+
+        if self.title:
+            curPos -= writeText(canvas, self.style,
+                                self.title, 24, curPos, self.width)
+
+        if self.subtitle:
+            curPos -= writeText(canvas, self.style,
+                                self.subtitle, 18, curPos, self.width)
+
+        if self.composer:
+            curPos -= writeText(canvas, self.style,
+                                "Composer: {c}".format(c=self.composer), 12, curPos, self.width)
+
+        if self.arranger:
+            curPos -= writeText(canvas, self.style,
+                                "Arranger: {a}".format(a=self.arranger), 12, curPos, self.width)
+
+        if self.tempo:
+            curPos -= writeText(canvas, self.style, "♩ = {t} bpm".format(
+                t=self.tempo), 12, curPos, self.width, align="left")
+
 
 def savePDF(document, style, pathToPDF):
-	
-		c = canvas.Canvas(pathToPDF, pagesize=style.pageSize, bottomup=0)
-		
-		curPos = style.topMargin*style.unit
-		
-		if document.title is not None:
-			curPos += writeText(c, style, document.title, 24, curPos)
+    template = PageTemplate(id='AllPages', frames=[Frame(style.leftMargin*mm, style.topMargin*mm, style.pageSize[0] - style.leftMargin*mm*2, style.pageSize[1] - style.topMargin*mm*2,
+                                                         leftPadding=0, bottomPadding=0, rightPadding=0, topPadding=0)])
 
-		if document.subtitle is not None:
-			curPos += writeText(c, style, document.subtitle, 18, curPos)
-		
-		if document.composer is not None:
-			curPos += writeText(c, style, "Composer: {c}".format(c = document.composer), 12, curPos)
-		
-		if document.arranger is not None:
-			curPos += writeText(c, style, "Arranger: {a}".format(a = document.arranger), 12, curPos)
-		
-		if document.tempo is not None:
-			curPos += writeText(c, style, "♩ = {t} bpm".format(t = document.tempo), 12, curPos, align = "left")
-		
-		curPos += style.separatorSize*style.unit
-			
-		if guitarChartCheck(document.chordList):
-			curPos += guitarChart(c, style, document.chordList, curPos)
-		
-		curPos += style.separatorSize*style.unit
-			
-		if document.blockList:
-			curPos += chordProgression(c, style, document, curPos)
-		
-		curPos += style.separatorSize*style.unit
-		
-		c.save()
+    rlDocList = []
+    rlDoc = BaseDocTemplate(
+        pathToPDF, pagesize=style.pageSize, pageTemplates=[template])
+
+    if document.title:
+        rlDocList.append(TitleBlock(style, document))
+
+    if guitarChartCheck(document.chordList):
+        rlDocList.append(GuitarChart(style, document.chordList))
+
+    if document.blockList:
+        rlDocList.append(ChordProgression(
+            style, document.blockList, document.timeSignature))
+
+    rlDoc.build(rlDocList)
