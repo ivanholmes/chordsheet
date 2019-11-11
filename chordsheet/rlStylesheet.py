@@ -44,7 +44,8 @@ def getStyleSheet(csStyle):
                                   fontSize=csStyle.headingFontSize,
                                   alignment=TA_LEFT,
                                   parent=stylesheet['Master'], 
-                                  spaceAfter=2*mm)
+                                  spaceAfter=2*mm,
+                                  keepWithNext=1)
                    )
 
     return stylesheet
