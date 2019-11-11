@@ -11,6 +11,7 @@ import fitz
 import io
 import subprocess
 import os
+import time
 from copy import copy
 
 from PyQt5.QtWidgets import QApplication, QAction, QLabel, QDialogButtonBox, QDialog, QFileDialog, QMessageBox, QPushButton, QLineEdit, QCheckBox, QSpinBox, QDoubleSpinBox, QTableWidgetItem, QTabWidget, QComboBox, QWidget, QScrollArea, QMainWindow, QShortcut
@@ -18,14 +19,16 @@ from PyQt5.QtCore import QFile, QObject, Qt, pyqtSlot, QSettings
 from PyQt5.QtGui import QPixmap, QImage, QKeySequence
 from PyQt5 import uic
 from chordsheet.tableView import ChordTableView, BlockTableView
+from chordsheet.comboBox import MComboBox
+from chordsheet.pdfViewer import PDFViewer
 
 from reportlab.lib.units import mm, cm, inch, pica
 from reportlab.lib.pagesizes import A4, A5, LETTER, LEGAL
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-from chordsheet.document import Document, Style, Chord, Block
-from chordsheet.render import savePDF
+from chordsheet.document import Document, Style, Chord, Block, Section
+from chordsheet.render import Renderer
 from chordsheet.parsers import parseFingering, parseName
 
 import _version
@@ -72,6 +75,7 @@ class DocumentWindow(QMainWindow):
 
         self.doc = doc
         self.style = style
+        self.renderer = Renderer(self.doc, self.style)
 
         self.lastDoc = copy(self.doc)
         self.currentFilePath = filename
@@ -79,6 +83,8 @@ class DocumentWindow(QMainWindow):
         self.UIFileLoader(str(os.path.join(scriptDir, 'ui', 'mainwindow.ui')))
         self.UIInitStyle()
         self.updateChordDict()
+        self.updateSectionDict()
+        self.currentSection = None
 
         self.setCentralWidget(self.window.centralWidget)
         self.setMenuBar(self.window.menuBar)
@@ -146,17 +152,32 @@ class DocumentWindow(QMainWindow):
 
         self.window.generateButton.clicked.connect(self.generateAction)
 
+        # update whole document when any tab is selected
+        self.window.tabWidget.tabBarClicked.connect(self.tabBarUpdateAction)
+
         self.window.guitarVoicingButton.clicked.connect(
             self.guitarVoicingAction)
         self.window.addChordButton.clicked.connect(self.addChordAction)
         self.window.removeChordButton.clicked.connect(self.removeChordAction)
         self.window.updateChordButton.clicked.connect(self.updateChordAction)
 
+        # connecting clicked only works for this combo box because it's my own modified version (MComboBox)
+        self.window.blockSectionComboBox.clicked.connect(
+            self.blockSectionClickedAction)
+        self.window.blockSectionComboBox.currentIndexChanged.connect(
+            self.blockSectionChangedAction)
         self.window.addBlockButton.clicked.connect(self.addBlockAction)
         self.window.removeBlockButton.clicked.connect(self.removeBlockAction)
         self.window.updateBlockButton.clicked.connect(self.updateBlockAction)
 
+        self.window.addSectionButton.clicked.connect(self.addSectionAction)
+        self.window.removeSectionButton.clicked.connect(
+            self.removeSectionAction)
+        self.window.updateSectionButton.clicked.connect(
+            self.updateSectionAction)
+
         self.window.chordTableView.clicked.connect(self.chordClickedAction)
+        self.window.sectionTableView.clicked.connect(self.sectionClickedAction)
         self.window.blockTableView.clicked.connect(self.blockClickedAction)
 
     def UIInitDocument(self):
@@ -167,13 +188,20 @@ class DocumentWindow(QMainWindow):
 
         # set all fields to appropriate values from document
         self.window.titleLineEdit.setText(self.doc.title)
+        self.window.subtitleLineEdit.setText(self.doc.subtitle)
         self.window.composerLineEdit.setText(self.doc.composer)
         self.window.arrangerLineEdit.setText(self.doc.arranger)
         self.window.timeSignatureSpinBox.setValue(self.doc.timeSignature)
         self.window.tempoLineEdit.setText(self.doc.tempo)
 
         self.window.chordTableView.populate(self.doc.chordList)
-        self.window.blockTableView.populate(self.doc.blockList)
+        self.window.sectionTableView.populate(self.doc.sectionList)
+        # populate the block table with the first section, account for a document with no sections
+        self.currentSection = self.doc.sectionList[0] if len(
+            self.doc.sectionList) else None
+        self.window.blockTableView.populate(
+            self.currentSection.blockList if self.currentSection else [])
+        self.updateSectionDict()
         self.updateChordDict()
 
     def UIInitStyle(self):
@@ -191,13 +219,19 @@ class DocumentWindow(QMainWindow):
         self.window.lineSpacingDoubleSpinBox.setValue(self.style.lineSpacing)
 
         self.window.leftMarginLineEdit.setText(str(self.style.leftMargin))
+        self.window.rightMarginLineEdit.setText(str(self.style.rightMargin))
         self.window.topMarginLineEdit.setText(str(self.style.topMargin))
+        self.window.bottomMarginLineEdit.setText(str(self.style.bottomMargin))
+
 
         self.window.fontComboBox.setDisabled(True)
         self.window.includedFontCheckBox.setChecked(True)
 
         self.window.beatWidthLineEdit.setText(str(self.style.unitWidth))
 
+    def tabBarUpdateAction(self, index):
+        self.updateDocument()
+    
     def pageSizeAction(self, index):
         self.pageSizeSelected = self.window.pageSizeComboBox.itemText(index)
 
@@ -216,6 +250,29 @@ class DocumentWindow(QMainWindow):
             self.window.chordTableView.model.item(index.row(), 0).text())
         self.window.guitarVoicingLineEdit.setText(
             self.window.chordTableView.model.item(index.row(), 1).text())
+
+    def sectionClickedAction(self, index):
+        # set the controls to the values from the selected section
+        self.window.sectionNameLineEdit.setText(
+            self.window.sectionTableView.model.item(index.row(), 0).text())
+        # also set the combo box on the block page to make it flow well
+        curSecName = self.window.sectionTableView.model.item(
+            index.row(), 0).text()
+        if curSecName:
+            self.window.blockSectionComboBox.setCurrentText(
+                curSecName)
+
+    def blockSectionClickedAction(self, text):
+        if text:
+            self.updateBlocks(self.sectionDict[text])
+
+    def blockSectionChangedAction(self, index):
+        sName = self.window.blockSectionComboBox.currentText()
+        if sName:
+            self.currentSection = self.sectionDict[sName]
+            self.window.blockTableView.populate(self.currentSection.blockList)
+        else:
+            self.currentSection = None
 
     def blockClickedAction(self, index):
         # set the controls to the values from the selected block
@@ -245,6 +302,8 @@ class DocumentWindow(QMainWindow):
         self.lastDoc = copy(self.doc)
         #  reset file path (this document hasn't been saved yet)
         self.currentFilePath = None
+        # new renderer
+        self.renderer = Renderer(self.doc, self.style)
         self.UIInitDocument()
         self.updatePreview()
 
@@ -297,7 +356,7 @@ class DocumentWindow(QMainWindow):
         filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath(
             "lastExportPath"), "PDF files (*.pdf)")[0]
         if filePath:
-            savePDF(d, s, filePath)
+            self.renderer.savePDF(filePath)
             self.setPath("lastExportPath", filePath)
 
     def menuFilePrintAction(self):
@@ -381,6 +440,18 @@ class DocumentWindow(QMainWindow):
         self.window.chordNameLineEdit.repaint()
         self.window.guitarVoicingLineEdit.repaint()
 
+    def clearSectionLineEdits(self):
+        self.window.sectionNameLineEdit.clear()
+        # necessary on Mojave with PyInstaller (or previous contents will be shown)
+        self.window.sectionNameLineEdit.repaint()
+
+    def clearBlockLineEdits(self):
+        self.window.blockLengthLineEdit.clear()
+        self.window.blockNotesLineEdit.clear()
+        # necessary on Mojave with PyInstaller (or previous contents will be shown)
+        self.window.blockLengthLineEdit.repaint()
+        self.window.blockNotesLineEdit.repaint()
+
     def updateChordDict(self):
         """
         Updates the dictionary used to generate the Chord menu (on the block tab)
@@ -389,6 +460,15 @@ class DocumentWindow(QMainWindow):
         self.chordDict.update({c.name: c for c in self.doc.chordList})
         self.window.blockChordComboBox.clear()
         self.window.blockChordComboBox.addItems(list(self.chordDict.keys()))
+
+    def updateSectionDict(self):
+        """
+        Updates the dictionary used to generate the Section menu (on the block tab)
+        """
+        self.sectionDict = {s.name: s for s in self.doc.sectionList}
+        self.window.blockSectionComboBox.clear()
+        self.window.blockSectionComboBox.addItems(
+            list(self.sectionDict.keys()))
 
     def removeChordAction(self):
         if self.window.chordTableView.selectionModel().hasSelection():  #  check for selection
@@ -418,7 +498,7 @@ class DocumentWindow(QMainWindow):
             else:
                 success = True  #  chord successfully parsed
         else:
-            NameWarningMessageBox().exec()  # Chord has no name, warn user
+            ChordNameWarningMessageBox().exec()  # Chord has no name, warn user
 
         if success == True:  # if chord was parsed properly
             self.window.chordTableView.populate(self.doc.chordList)
@@ -430,9 +510,10 @@ class DocumentWindow(QMainWindow):
         if self.window.chordTableView.selectionModel().hasSelection():  #  check for selection
             self.updateChords()
             row = self.window.chordTableView.selectionModel().currentIndex().row()
+            oldName = self.window.chordTableView.model.item(row, 0).text()
             cName = parseName(self.window.chordNameLineEdit.text())
             if cName:
-                self.doc.chordList[row] = Chord(cName)
+                self.doc.chordList[row].name = cName
                 if self.window.guitarVoicingLineEdit.text():
                     try:
                         self.doc.chordList[row].voicings['guitar'] = parseFingering(
@@ -443,44 +524,83 @@ class DocumentWindow(QMainWindow):
                 else:
                     success = True
             else:
-                NameWarningMessageBox().exec()
+                ChordNameWarningMessageBox().exec()
 
             if success == True:
-                self.window.chordTableView.populate(self.doc.chordList)
-                self.clearChordLineEdits()
                 self.updateChordDict()
+                self.window.chordTableView.populate(self.doc.chordList)
+                # update the names of chords in all blocklists in case they've already been used
+                for s in self.doc.sectionList:
+                    for b in s.blockList:
+                        if b.chord:
+                            if b.chord.name == oldName:
+                                b.chord.name = cName
+                self.window.blockTableView.populate(self.currentSection.blockList)
+                self.clearChordLineEdits()
 
-    def clearBlockLineEdits(self):
-        self.window.blockLengthLineEdit.clear()
-        self.window.blockNotesLineEdit.clear()
-        # necessary on Mojave with PyInstaller (or previous contents will be shown)
-        self.window.blockLengthLineEdit.repaint()
-        self.window.blockNotesLineEdit.repaint()
+    def removeSectionAction(self):
+        if self.window.sectionTableView.selectionModel().hasSelection():  #  check for selection
+            self.updateSections()
+
+            row = self.window.sectionTableView.selectionModel().currentIndex().row()
+            self.doc.sectionList.pop(row)
+
+            self.window.sectionTableView.populate(self.doc.sectionList)
+            self.clearSectionLineEdits()
+            self.updateSectionDict()
+
+    def addSectionAction(self):
+        self.updateSections()
+
+        sName = self.window.sectionNameLineEdit.text()
+        if sName and sName not in [s.name for s in self.doc.sectionList]:
+            self.doc.sectionList.append(Section(name=sName))
+            self.window.sectionTableView.populate(self.doc.sectionList)
+            self.clearSectionLineEdits()
+            self.updateSectionDict()
+        else:
+            # Section has no name or non unique, warn user
+            SectionNameWarningMessageBox().exec()
+
+    def updateSectionAction(self):
+        if self.window.sectionTableView.selectionModel().hasSelection():  #  check for selection
+            self.updateSections()
+            row = self.window.sectionTableView.selectionModel().currentIndex().row()
+
+            sName = self.window.sectionNameLineEdit.text()
+            if sName and sName not in [s.name for s in self.doc.sectionList]:
+                self.doc.sectionList[row].name = sName
+                self.window.sectionTableView.populate(self.doc.sectionList)
+                self.clearSectionLineEdits()
+                self.updateSectionDict()
+            else:
+                # Section has no name or non unique, warn user
+                SectionNameWarningMessageBox().exec()
 
     def removeBlockAction(self):
         if self.window.blockTableView.selectionModel().hasSelection():  #  check for selection
-            self.updateBlocks()
+            self.updateBlocks(self.currentSection)
 
             row = self.window.blockTableView.selectionModel().currentIndex().row()
-            self.doc.blockList.pop(row)
+            self.currentSection.blockList.pop(row)
 
-            self.window.blockTableView.populate(self.doc.blockList)
+            self.window.blockTableView.populate(self.currentSection.blockList)
 
     def addBlockAction(self):
-        self.updateBlocks()
+        self.updateBlocks(self.currentSection)
 
         try:
-            #  can the value entered for block length be cast as an integer
-            bLength = int(self.window.blockLengthLineEdit.text())
+            #  can the value entered for block length be cast as a float
+            bLength = float(self.window.blockLengthLineEdit.text())
         except Exception:
             bLength = False
 
         if bLength:  # create the block
-            self.doc.blockList.append(Block(bLength,
-                                            chord=self.chordDict[self.window.blockChordComboBox.currentText(
-                                            )],
-                                            notes=(self.window.blockNotesLineEdit.text() if not "" else None)))
-            self.window.blockTableView.populate(self.doc.blockList)
+            self.currentSection.blockList.append(Block(bLength,
+                                                       chord=self.chordDict[self.window.blockChordComboBox.currentText(
+                                                       )],
+                                                       notes=(self.window.blockNotesLineEdit.text() if not "" else None)))
+            self.window.blockTableView.populate(self.currentSection.blockList)
             self.clearBlockLineEdits()
         else:
             # show warning that length was not entered or in wrong format
@@ -488,20 +608,22 @@ class DocumentWindow(QMainWindow):
 
     def updateBlockAction(self):
         if self.window.blockTableView.selectionModel().hasSelection():  #  check for selection
-            self.updateBlocks()
+            self.updateBlocks(self.currentSection)
 
             try:
-                bLength = int(self.window.blockLengthLineEdit.text())
+                #  can the value entered for block length be cast as a float
+                bLength = float(self.window.blockLengthLineEdit.text())
             except Exception:
                 bLength = False
 
             row = self.window.blockTableView.selectionModel().currentIndex().row()
             if bLength:
-                self.doc.blockList[row] = (Block(bLength,
-                                                 chord=self.chordDict[self.window.blockChordComboBox.currentText(
-                                                 )],
-                                                 notes=(self.window.blockNotesLineEdit.text() if not "" else None)))
-                self.window.blockTableView.populate(self.doc.blockList)
+                self.currentSection.blockList[row] = (Block(bLength,
+                                                            chord=self.chordDict[self.window.blockChordComboBox.currentText(
+                                                            )],
+                                                            notes=(self.window.blockNotesLineEdit.text() if not "" else None)))
+                self.window.blockTableView.populate(
+                    self.currentSection.blockList)
                 self.clearBlockLineEdits()
             else:
                 LengthWarningMessageBox().exec()
@@ -515,24 +637,12 @@ class DocumentWindow(QMainWindow):
         Update the preview shown by rendering a new PDF and drawing it to the scroll area.
         """
         try:
-            self.currentPreview = io.BytesIO()
-            savePDF(self.doc, self.style, self.currentPreview)
-
-            pdfView = fitz.Document(stream=self.currentPreview, filetype='pdf')
-            # render at 4x resolution and scale
-            pix = pdfView[0].getPixmap(matrix=fitz.Matrix(4, 4), alpha=False)
-
-            fmt = QImage.Format_RGB888
-            qtimg = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
-
-            self.window.imageLabel.setPixmap(QPixmap.fromImage(qtimg).scaled(self.window.scrollArea.width(
-            )-30, self.window.scrollArea.height()-30, Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation))
-            # -30 because the scrollarea has a margin of 12 each side (extra for safety)
-            # necessary on Mojave with PyInstaller (or previous contents will be shown)
-            self.window.imageLabel.repaint()
+            self.currentPreview = self.renderer.stream()
         except Exception:
             QMessageBox.warning(self, "Preview failed", "Could not update the preview.",
                                 buttons=QMessageBox.Ok, defaultButton=QMessageBox.Ok)
+
+        self.window.pdfArea.update(self.currentPreview)
 
     def updateTitleBar(self):
         """
@@ -558,13 +668,39 @@ class DocumentWindow(QMainWindow):
 
         self.doc.chordList = chordTableList
 
-    def updateBlocks(self):
+    def matchSection(self, nameToMatch):
+        """
+        Given the name of a section, this function checks if it is already present in the document. 
+        If it is, it's returned. If not, a new section with the given name is returned.
+        """
+        section = None
+        for s in self.doc.sectionList:
+            if s.name == nameToMatch:
+                section = s
+                break
+        if section is None:
+            section = Section(name=nameToMatch)
+        return section
+
+    def updateSections(self):
+        """
+        Update the section list by reading the table
+        """
+        sectionTableList = []
+        for i in range(self.window.sectionTableView.model.rowCount()):
+            sectionTableList.append(self.matchSection(
+                self.window.sectionTableView.model.item(i, 0).text()))
+
+        self.doc.sectionList = sectionTableList
+
+    def updateBlocks(self, section):
         """
         Update the block list by reading the table.
         """
+
         blockTableList = []
         for i in range(self.window.blockTableView.model.rowCount()):
-            blockLength = int(
+            blockLength = float(
                 self.window.blockTableView.model.item(i, 1).text())
             blockChord = self.chordDict[(self.window.blockTableView.model.item(
                 i, 0).text() if self.window.blockTableView.model.item(i, 0).text() else "None")]
@@ -573,7 +709,7 @@ class DocumentWindow(QMainWindow):
             blockTableList.append(
                 Block(blockLength, chord=blockChord, notes=blockNotes))
 
-        self.doc.blockList = blockTableList
+        section.blockList = blockTableList
 
     def updateDocument(self):
         """
@@ -596,8 +732,12 @@ class DocumentWindow(QMainWindow):
         self.style.unit = unitDict[self.unitSelected]
         self.style.leftMargin = float(self.window.leftMarginLineEdit.text(
         )) if self.window.leftMarginLineEdit.text() else self.style.leftMargin
+        self.style.rightMargin = float(self.window.rightMarginLineEdit.text(
+        )) if self.window.rightMarginLineEdit.text() else self.style.rightMargin
         self.style.topMargin = float(self.window.topMarginLineEdit.text(
         )) if self.window.topMarginLineEdit.text() else self.style.topMargin
+        self.style.bottomMargin = float(self.window.bottomMarginLineEdit.text(
+        )) if self.window.bottomMarginLineEdit.text() else self.style.bottomMargin
         self.style.lineSpacing = float(self.window.lineSpacingDoubleSpinBox.value(
         )) if self.window.lineSpacingDoubleSpinBox.value() else self.style.lineSpacing
 
@@ -612,8 +752,11 @@ class DocumentWindow(QMainWindow):
                 QMessageBox.warning(self, "Out of range", "Beat width is out of range. It can be a maximum of {}.".format(
                     maxBeatWidth), buttons=QMessageBox.Ok, defaultButton=QMessageBox.Ok)
 
+        # update chords, sections, blocks
         self.updateChords()
-        self.updateBlocks()
+        self.updateSections()
+        if self.currentSection:
+            self.updateBlocks(self.currentSection)
 
         self.style.font = (
             'FreeSans' if self.style.useIncludedFont else 'HelveticaNeue')
@@ -713,7 +856,7 @@ class UnreadableMessageBox(QMessageBox):
         self.setDefaultButton(QMessageBox.Ok)
 
 
-class NameWarningMessageBox(QMessageBox):
+class ChordNameWarningMessageBox(QMessageBox):
     """
     Message box to warn the user that a chord must have a name
     """
@@ -725,6 +868,23 @@ class NameWarningMessageBox(QMessageBox):
         self.setWindowTitle("Unnamed chord")
         self.setText("Chords must have a name.")
         self.setInformativeText("Please give your chord a name and try again.")
+        self.setStandardButtons(QMessageBox.Ok)
+        self.setDefaultButton(QMessageBox.Ok)
+
+
+class SectionNameWarningMessageBox(QMessageBox):
+    """
+    Message box to warn the user that a section must have a name
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.setIcon(QMessageBox.Warning)
+        self.setWindowTitle("Unnamed section")
+        self.setText("Sections must have a unique name.")
+        self.setInformativeText(
+            "Please give your section a unique name and try again.")
         self.setStandardButtons(QMessageBox.Ok)
         self.setDefaultButton(QMessageBox.Ok)
 

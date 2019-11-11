@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1061</width>
-    <height>646</height>
+    <height>659</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -268,15 +268,49 @@
                      </property>
                     </widget>
                    </item>
-                   <item row="3" column="0">
+                   <item row="4" column="0">
                     <widget class="QLabel" name="topMarginLabel">
                      <property name="text">
                       <string>Top margin</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="3" column="1">
+                   <item row="4" column="1">
                     <widget class="QLineEdit" name="topMarginLineEdit">
+                     <property name="maximumSize">
+                      <size>
+                       <width>60</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="0">
+                    <widget class="QLabel" name="rightMarginLabel">
+                     <property name="text">
+                      <string>Right margin</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="1">
+                    <widget class="QLineEdit" name="rightMarginLineEdit">
+                     <property name="maximumSize">
+                      <size>
+                       <width>60</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="5" column="0">
+                    <widget class="QLabel" name="bottomMarginLabel">
+                     <property name="text">
+                      <string>Bottom margin</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="5" column="1">
+                    <widget class="QLineEdit" name="bottomMarginLineEdit">
                      <property name="maximumSize">
                       <size>
                        <width>60</width>
@@ -569,6 +603,112 @@
               </item>
              </layout>
             </widget>
+            <widget class="QWidget" name="tabWidgetSections">
+             <attribute name="title">
+              <string>Sections</string>
+             </attribute>
+             <layout class="QVBoxLayout" name="verticalLayout_4">
+              <item>
+               <layout class="QVBoxLayout" name="sectionTabLayout">
+                <item>
+                 <widget class="SectionTableView" name="sectionTableView">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="editTriggers">
+                   <set>QAbstractItemView::NoEditTriggers</set>
+                  </property>
+                  <property name="dragEnabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="dragDropOverwriteMode">
+                   <bool>false</bool>
+                  </property>
+                  <property name="dragDropMode">
+                   <enum>QAbstractItemView::InternalMove</enum>
+                  </property>
+                  <property name="defaultDropAction">
+                   <enum>Qt::TargetMoveAction</enum>
+                  </property>
+                  <property name="selectionMode">
+                   <enum>QAbstractItemView::SingleSelection</enum>
+                  </property>
+                  <property name="selectionBehavior">
+                   <enum>QAbstractItemView::SelectRows</enum>
+                  </property>
+                  <property name="showGrid">
+                   <bool>false</bool>
+                  </property>
+                  <property name="cornerButtonEnabled">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QFormLayout" name="formLayout_3">
+                  <property name="fieldGrowthPolicy">
+                   <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="sectionNameLabel">
+                    <property name="text">
+                     <string>Name</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="sectionNameLineEdit"/>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="bottomSectionHorizontalLayout">
+                  <item>
+                   <widget class="QPushButton" name="removeSectionButton">
+                    <property name="text">
+                     <string>Remove section</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_7">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::MinimumExpanding</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>0</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="updateSectionButton">
+                    <property name="text">
+                     <string>Update section</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="addSectionButton">
+                    <property name="text">
+                     <string>Add section</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
             <widget class="QWidget" name="tabWidgetBlocks">
              <attribute name="title">
               <string>Blocks</string>
@@ -576,6 +716,30 @@
              <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
                <layout class="QVBoxLayout" name="blockTabLayout">
+                <item>
+                 <layout class="QFormLayout" name="formLayout_5">
+                  <property name="fieldGrowthPolicy">
+                   <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="blockSectionLabel">
+                    <property name="text">
+                     <string>Section</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="MComboBox" name="blockSectionComboBox">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
                 <item>
                  <widget class="BlockTableView" name="blockTableView">
                   <property name="sizePolicy">
@@ -783,7 +947,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QScrollArea" name="scrollArea">
+      <widget class="PDFViewer" name="pdfArea" native="true">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>1</horstretch>
@@ -796,52 +960,9 @@
          <height>400</height>
         </size>
        </property>
-       <property name="widgetResizable">
+       <property name="widgetResizable" stdset="0">
         <bool>true</bool>
        </property>
-       <widget class="QWidget" name="scrollAreaContents">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>598</width>
-          <height>598</height>
-         </rect>
-        </property>
-        <property name="autoFillBackground">
-         <bool>true</bool>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_2">
-         <property name="leftMargin">
-          <number>12</number>
-         </property>
-         <property name="topMargin">
-          <number>12</number>
-         </property>
-         <property name="rightMargin">
-          <number>12</number>
-         </property>
-         <property name="bottomMargin">
-          <number>12</number>
-         </property>
-         <item row="0" column="0" alignment="Qt::AlignHCenter">
-          <widget class="QLabel" name="imageLabel">
-           <property name="autoFillBackground">
-            <bool>true</bool>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-           <property name="scaledContents">
-            <bool>false</bool>
-           </property>
-           <property name="margin">
-            <number>0</number>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
       </widget>
      </widget>
     </item>
@@ -974,6 +1095,22 @@
    <extends>QTableView</extends>
    <header>chordsheet/tableView.h</header>
   </customwidget>
+  <customwidget>
+   <class>SectionTableView</class>
+   <extends>QTableView</extends>
+   <header>chordsheet/tableView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MComboBox</class>
+   <extends>QComboBox</extends>
+   <header>chordsheet/comboBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PDFViewer</class>
+   <extends>QWidget</extends>
+   <header>chordsheet/pdfViewer.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>generateButton</tabstop>
@@ -996,7 +1133,6 @@
   <tabstop>blockTableView</tabstop>
   <tabstop>addBlockButton</tabstop>
   <tabstop>removeBlockButton</tabstop>
-  <tabstop>scrollArea</tabstop>
  </tabstops>
  <resources/>
  <connections/>

@@ -81,6 +81,30 @@ class ChordTableView(MTableView):
             self.model.appendRow(rowList)
 
 
+class SectionTableView(MTableView):
+    """
+    Subclass MTableView to add properties just for the section table.
+    """
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.model.setHorizontalHeaderLabels(['Name'])
+
+    def populate(self, sList):
+        """
+        Fill the table from a list of Section objects.
+        """
+        self.model.removeRows(0, self.model.rowCount())
+        for s in sList:
+            rowList = [QtGui.QStandardItem(s.name)]
+            for item in rowList:
+                item.setEditable(False)
+                item.setDropEnabled(False)
+
+            self.model.appendRow(rowList)
+
+
 class BlockTableView(MTableView):
     """
     Subclass MTableView to add properties just for the block table.

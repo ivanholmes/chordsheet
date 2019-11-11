@@ -27,7 +27,7 @@
 			<voicing instrument="guitar">x69676</voicing>
 		</chord>
 	</chords>
-	<progression>
+	<section name="A section">
 		<block>
 			<length>9</length>
 			<chord>Gm9</chord>
@@ -73,5 +73,5 @@
 			<chord>D7#5#9</chord>
 			<notes>over Ab</notes>
 		</block>
-	</progression>
+	</section>
 </chordsheet>
