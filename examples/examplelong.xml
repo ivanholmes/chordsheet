@@ -29,6 +29,56 @@
             <voicing instrument="guitar">x,x,0,2,3,1</voicing>
             <voicing instrument="piano">A,D,F</voicing>
         </chord>
+        <chord>
+            <name>q7</name>
+            <voicing instrument="guitar">x,3,2,0,1,0</voicing>
+            <voicing instrument="piano">Bb,E,C,G</voicing>
+        </chord>
+        <chord>
+            <name>q3</name>
+            <voicing instrument="guitar">1,3,3,2,1,1</voicing>
+            <voicing instrument="piano">A,C,F</voicing>
+        </chord>
+        <chord>
+            <name>q5</name>
+            <voicing instrument="guitar">3,2,0,0,0,3</voicing>
+            <voicing instrument="piano">B,D,G</voicing>
+        </chord>
+        <chord>
+            <name>q/G</name>
+            <voicing instrument="guitar">3,3,2,0,1,0</voicing>
+            <voicing instrument="piano">G,C,E</voicing>
+        </chord>
+        <chord>
+            <name>q</name>
+            <voicing instrument="guitar">x,x,0,2,3,1</voicing>
+            <voicing instrument="piano">A,D,F</voicing>
+        </chord>
+        <chord>
+            <name>yeeq</name>
+            <voicing instrument="guitar">x,3,2,0,1,0</voicing>
+            <voicing instrument="piano">Bb,E,C,G</voicing>
+        </chord>
+        <chord>
+            <name>quu</name>
+            <voicing instrument="guitar">1,3,3,2,1,1</voicing>
+            <voicing instrument="piano">A,C,F</voicing>
+        </chord>
+        <chord>
+            <name>b3</name>
+            <voicing instrument="guitar">3,2,0,0,0,3</voicing>
+            <voicing instrument="piano">B,D</voicing>
+        </chord>
+        <chord>
+            <name>aa</name>
+            <voicing instrument="guitar">3,3,2,0,1,0</voicing>
+            <voicing instrument="piano">G,C,E</voicing>
+        </chord>
+        <chord>
+            <name>z</name>
+            <voicing instrument="guitar">x,x,0,2,3,1</voicing>
+            <voicing instrument="piano">A,D,F,G,E,B,C</voicing>
+        </chord>
     </chords>
     <section name="Example section">
         <block>

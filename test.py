@@ -8,8 +8,8 @@ from chordsheet.render import Renderer
 
 pdfmetrics.registerFont(TTFont('FreeSans', os.path.join('fonts', 'FreeSans.ttf')))
 
-doc = Document.newFromXML('examples/angela.xml')
-style = Style(unitWidth=20)
+doc = Document.newFromXML('examples/test.xml')
+style = Style(unitWidth=10)
 ren = Renderer(doc, style)
 
-ren.savePDF('test.pdf') 
+ren.savePDF('test.pdf')   

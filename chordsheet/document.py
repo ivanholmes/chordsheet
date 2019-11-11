@@ -22,15 +22,9 @@ class Style:
         self.unitWidth = kwargs.get('unitWidth', 10)
 
         self.useIncludedFont = True
+        self.numberPages = True
 
         self.separatorSize = 5*self.unit
-
-        self.stringHzSp = 20*self.unit
-        self.stringHzGap = 2*self.unit
-        self.stringHeight = 5*self.unit
-
-        self.unitHeight = 20*self.unit
-        self.beatsHeight = 5*self.unit
 
         self.titleFontSize = 24
         self.subtitleFontSize = 18
@@ -190,9 +184,8 @@ class Document:
                     ET.SubElement(chordElement, "voicing", attrib={
                                   'instrument': 'guitar'}).text = ','.join(c.voicings['guitar'])
                 if inst == 'piano':
-                    # return first element of list as feature has not been implemented
                     ET.SubElement(chordElement, "voicing", attrib={
-                                  'instrument': 'piano'}).text = c.voicings['piano'][0]
+                                  'instrument': 'piano'}).text = ','.join(c.voicings['piano'])
 
         for n, s in enumerate(self.sectionList):
             sectionElement = ET.SubElement(root, "section", attrib={

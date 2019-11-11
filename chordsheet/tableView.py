@@ -64,7 +64,7 @@ class ChordTableView(MTableView):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.model.setHorizontalHeaderLabels(['Chord', 'Voicing'])
+        self.model.setHorizontalHeaderLabels(['Chord', 'Guitar voicing', 'Piano voicing'])
 
     def populate(self, cList):
         """
@@ -73,7 +73,9 @@ class ChordTableView(MTableView):
         self.model.removeRows(0, self.model.rowCount())
         for c in cList:
             rowList = [QtGui.QStandardItem(c.name), QtGui.QStandardItem(
-                ",".join(c.voicings['guitar'] if 'guitar' in c.voicings.keys() else ""))]
+                ",".join(c.voicings['guitar'] if 'guitar' in c.voicings.keys() else "")),
+                QtGui.QStandardItem(
+                ",".join(c.voicings['piano'] if 'piano' in c.voicings.keys() else ""))]
             for item in rowList:
                 item.setEditable(False)
                 item.setDropEnabled(False)

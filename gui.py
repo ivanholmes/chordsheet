@@ -100,7 +100,8 @@ class DocumentWindow(QMainWindow):
         """
         Reimplement the built in closeEvent to allow asking the user to save.
         """
-        self.saveWarning()
+        if self.saveWarning():
+            self.close()
 
     def UIFileLoader(self, ui_file):
         """
@@ -250,6 +251,8 @@ class DocumentWindow(QMainWindow):
             self.window.chordTableView.model.item(index.row(), 0).text())
         self.window.guitarVoicingLineEdit.setText(
             self.window.chordTableView.model.item(index.row(), 1).text())
+        self.window.pianoVoicingLineEdit.setText(
+            self.window.chordTableView.model.item(index.row(), 2).text())
 
     def sectionClickedAction(self, index):
         # set the controls to the values from the selected section
@@ -297,21 +300,23 @@ class DocumentWindow(QMainWindow):
         return settings.setValue(value, os.path.dirname(fullpath))
 
     def menuFileNewAction(self):
-        self.doc = Document()  #  new document object
-        # copy this object as reference to check against on quitting
-        self.lastDoc = copy(self.doc)
-        #  reset file path (this document hasn't been saved yet)
-        self.currentFilePath = None
-        # new renderer
-        self.renderer = Renderer(self.doc, self.style)
-        self.UIInitDocument()
-        self.updatePreview()
+        if self.saveWarning(): # ask the user if they want to save 
+            self.doc = Document()  #  new document object
+            # copy this object as reference to check against on quitting
+            self.lastDoc = copy(self.doc)
+            #  reset file path (this document hasn't been saved yet)
+            self.currentFilePath = None
+            # new renderer
+            self.renderer = Renderer(self.doc, self.style)
+            self.UIInitDocument()
+            self.updatePreview()
 
     def menuFileOpenAction(self):
-        filePath = QFileDialog.getOpenFileName(self.window.tabWidget, 'Open file', self.getPath(
-            "workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
-        if filePath:
-            self.openFile(filePath)
+        if self.saveWarning(): # ask the user if they want to save 
+            filePath = QFileDialog.getOpenFileName(self.window.tabWidget, 'Open file', self.getPath(
+                "workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
+            if filePath:
+                self.openFile(filePath)
 
     def openFile(self, filePath):
         """
@@ -410,7 +415,7 @@ class DocumentWindow(QMainWindow):
         self.updateDocument()  # update the document to catch all changes
 
         if self.lastDoc == self.doc:
-            self.close()
+            return True
         else:
             wantToSave = UnsavedMessageBox().exec()
 
@@ -420,11 +425,13 @@ class DocumentWindow(QMainWindow):
                         os.path.expanduser("~")), "Chordsheet ML files (*.xml *.cml)")
                     self.currentFilePath = filePath[0]
                 self.doc.saveXML(self.currentFilePath)
-                self.close()
+                return True
 
             elif wantToSave == QMessageBox.Discard:
-                self.close()
-            # if cancel or anything else do nothing at all
+                return True
+            
+            else:
+                return False
 
     def guitarVoicingAction(self):
         gdialog = GuitarDialog()
@@ -436,9 +443,11 @@ class DocumentWindow(QMainWindow):
     def clearChordLineEdits(self):
         self.window.chordNameLineEdit.clear()
         self.window.guitarVoicingLineEdit.clear()
+        self.window.pianoVoicingLineEdit.clear()
         # necessary on Mojave with PyInstaller (or previous contents will be shown)
         self.window.chordNameLineEdit.repaint()
         self.window.guitarVoicingLineEdit.repaint()
+        self.window.pianoVoicingLineEdit.repaint()
 
     def clearSectionLineEdits(self):
         self.window.sectionNameLineEdit.clear()
@@ -475,9 +484,17 @@ class DocumentWindow(QMainWindow):
             self.updateChords()
 
             row = self.window.chordTableView.selectionModel().currentIndex().row()
+            oldName = self.window.chordTableView.model.item(row, 0).text()
             self.doc.chordList.pop(row)
 
             self.window.chordTableView.populate(self.doc.chordList)
+            # remove the chord if any of the blocks have it attached
+            for s in self.doc.sectionList:
+                    for b in s.blockList:
+                        if b.chord:
+                            if b.chord.name == oldName:
+                                b.chord = None
+            self.window.blockTableView.populate(self.currentSection.blockList)
             self.clearChordLineEdits()
             self.updateChordDict()
 
@@ -488,13 +505,21 @@ class DocumentWindow(QMainWindow):
         cName = parseName(self.window.chordNameLineEdit.text())
         if cName:
             self.doc.chordList.append(Chord(cName))
-            if self.window.guitarVoicingLineEdit.text():
-                try:
-                    self.doc.chordList[-1].voicings['guitar'] = parseFingering(
-                        self.window.guitarVoicingLineEdit.text(), 'guitar')
-                    success = True  #  chord successfully parsed
-                except Exception:
-                    VoicingWarningMessageBox().exec()  # Voicing is malformed,  warn user
+            if self.window.guitarVoicingLineEdit.text() or self.window.pianoVoicingLineEdit.text():
+                if self.window.guitarVoicingLineEdit.text():
+                    try:
+                        self.doc.chordList[-1].voicings['guitar'] = parseFingering(
+                            self.window.guitarVoicingLineEdit.text(), 'guitar')
+                        success = True  #  chord successfully parsed
+                    except Exception:
+                        VoicingWarningMessageBox().exec()  # Voicing is malformed,  warn user
+                if self.window.pianoVoicingLineEdit.text():
+                    try:
+                        self.doc.chordList[-1].voicings['piano'] = parseFingering(
+                            self.window.pianoVoicingLineEdit.text(), 'piano')
+                        success = True  #  chord successfully parsed
+                    except Exception:
+                        VoicingWarningMessageBox().exec()  # Voicing is malformed,  warn user
             else:
                 success = True  #  chord successfully parsed
         else:
@@ -514,15 +539,23 @@ class DocumentWindow(QMainWindow):
             cName = parseName(self.window.chordNameLineEdit.text())
             if cName:
                 self.doc.chordList[row].name = cName
-                if self.window.guitarVoicingLineEdit.text():
-                    try:
-                        self.doc.chordList[row].voicings['guitar'] = parseFingering(
-                            self.window.guitarVoicingLineEdit.text(), 'guitar')
-                        success = True
-                    except Exception:
-                        VoicingWarningMessageBox().exec()
+                if self.window.guitarVoicingLineEdit.text() or self.window.pianoVoicingLineEdit.text():
+                    if self.window.guitarVoicingLineEdit.text():
+                        try:
+                            self.doc.chordList[-1].voicings['guitar'] = parseFingering(
+                                self.window.guitarVoicingLineEdit.text(), 'guitar')
+                            success = True  #  chord successfully parsed
+                        except Exception:
+                            VoicingWarningMessageBox().exec()  # Voicing is malformed,  warn user
+                    if self.window.pianoVoicingLineEdit.text():
+                        try:
+                            self.doc.chordList[-1].voicings['piano'] = parseFingering(
+                                self.window.pianoVoicingLineEdit.text(), 'piano')
+                            success = True  #  chord successfully parsed
+                        except Exception:
+                            VoicingWarningMessageBox().exec()  # Voicing is malformed,  warn user
                 else:
-                    success = True
+                    success = True  #  chord successfully parsed
             else:
                 ChordNameWarningMessageBox().exec()
 
@@ -665,6 +698,9 @@ class DocumentWindow(QMainWindow):
             if self.window.chordTableView.model.item(i, 1).text():
                 chordTableList[-1].voicings['guitar'] = parseFingering(
                     self.window.chordTableView.model.item(i, 1).text(), 'guitar')
+            if self.window.chordTableView.model.item(i, 2).text():
+                chordTableList[-1].voicings['piano'] = parseFingering(
+                    self.window.chordTableView.model.item(i, 2).text(), 'piano')
 
         self.doc.chordList = chordTableList
 
