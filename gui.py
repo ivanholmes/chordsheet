@@ -542,14 +542,14 @@ class DocumentWindow(QMainWindow):
                 if self.window.guitarVoicingLineEdit.text() or self.window.pianoVoicingLineEdit.text():
                     if self.window.guitarVoicingLineEdit.text():
                         try:
-                            self.doc.chordList[-1].voicings['guitar'] = parseFingering(
+                            self.doc.chordList[row].voicings['guitar'] = parseFingering(
                                 self.window.guitarVoicingLineEdit.text(), 'guitar')
                             success = True  #  chord successfully parsed
                         except Exception:
                             VoicingWarningMessageBox().exec()  # Voicing is malformed,  warn user
                     if self.window.pianoVoicingLineEdit.text():
                         try:
-                            self.doc.chordList[-1].voicings['piano'] = parseFingering(
+                            self.doc.chordList[row].voicings['piano'] = parseFingering(
                                 self.window.pianoVoicingLineEdit.text(), 'piano')
                             success = True  #  chord successfully parsed
                         except Exception:
