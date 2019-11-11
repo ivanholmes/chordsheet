@@ -194,7 +194,7 @@ class PianoChart(Flowable):
         widest = 0
         for index, c in enumerate(self.pianoChordList):
             cKL, vL, fKN, iconWidth = self.calculate(c)
-            if currentWidth + iconWidth >= availWidth + self.iconHzSpacing:
+            if currentWidth + iconWidth >= availWidth:
                 vUnits += 1
                 currentWidth = self.chartMargin
             else:
