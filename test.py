@@ -12,4 +12,4 @@ doc = Document.newFromXML('examples/test.xml')
 style = Style(unitWidth=10)
 ren = Renderer(doc, style)
 
-ren.savePDF('test.pdf')   
+ren.savePDF('/Users/ivan/Desktop/test.pdf')   

@@ -517,6 +517,9 @@ class Renderer:
             rlDocList.append(
                 Paragraph(self.document.subtitle, styles['Subtitle']))
 
+        if self.document.composer or self.document.arranger:
+            rlDocList.append(Spacer(0, 2*mm))
+
         if self.document.composer:
             rlDocList.append(Paragraph("Composer: {c}".format(
                 c=self.document.composer), styles['Credits']))
