@@ -15,11 +15,10 @@ To develop Chordsheet, clone this repository and run gui.py using a recent Pytho
 Chordsheet is alpha-grade software. At present, the program will crash readily given user input it doesn't expect. 
 
 ### Limitations
-- No support for multiple pages
 - Only guitar chords can be entered and shown
 - No support for lyrics or melody (use something else!)
 - PDF preview is blurry on high DPI monitors
-- Chord names and notes can spill out of their block if it's not big enough
+- Chord names and notes can spill out of their block if it's not big enough (partially remedied by allowing the user to change the beat width)
 - Poor font handling (choice of either FreeSans or Helvetica Neue if installed)
 - No support for printing
 
