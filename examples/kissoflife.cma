@@ -1,0 +1,21 @@
+\chordsheet 1
+
+\title Kiss of Life
+\subtitle Sade
+\arranger Ivan Holmes
+\composer Sade Adu, Paul S. Denman, Andrew Hale, Stuart Matthewman
+\timesig 4
+\tempo 120
+
+\chord AM9 piano A,B,C#,E
+\chord F#m11 alias F piano A,B,C#,E
+\chord DM7 piano A,C#,F#
+\chord C#m7 piano G#,B,E
+\chord Bm7 piano A,D,F#
+
+\section Intro and verse
+AM9,8 F#m11,8 DM7,1.5 
+C#m7,2 Bm7,4.5 F#m11,8
+
+\section Chorus and bridge
+Bm7,3.5 F,4.5 Bm7,3.5 F#m11,4.5
