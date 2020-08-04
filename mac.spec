@@ -1,7 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-block_cipher = None
+# Nasty hack to get the version number included automatically
+with open('_version.py', 'r') as versinfo:
+   exec(versinfo.read())
 
+block_cipher = None
 
 a = Analysis(['/Users/ivan/Code/chordsheet/gui.py'],
              pathex=['/Users/ivan/Code/chordsheet'],
@@ -26,7 +29,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [],
-          name='Chordsheet',
+          name=appName,
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
@@ -35,11 +38,13 @@ exe = EXE(pyz,
           runtime_tmpdir=None,
           console=False )
 app = BUNDLE(exe,
-             name='Chordsheet.app',
+             name=exe.name + '.app',
              icon='ui/icon.icns',
-             bundle_identifier=None,
+             bundle_identifier="uk.co.ivanholmes.chordsheet",
              info_plist={
+                    'CFBundleShortVersionString': version,
                     'NSPrincipalClass': 'NSApplication',
-                    'NSHighResolutionCapable': 'True'
+                    'NSHighResolutionCapable': 'True',
+                    'NSHumanReadableCopyright': "© Ivan Holmes, 2020. Some rights reserved."
                     }
             )
