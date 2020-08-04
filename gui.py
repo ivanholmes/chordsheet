@@ -339,7 +339,10 @@ class DocumentWindow(QMainWindow):
     def menuFileSaveAction(self):
         self.updateDocument()
 
-        if self.currentFilePath:
+        fileExt = os.path.splitext(self.currentFilePath)[1].lower()
+
+        if self.currentFilePath and fileExt != ".cma":
+            # Chordsheet Macro files can't be saved at this time
             self.saveFile(self.currentFilePath)
         else:
             filePath = QFileDialog.getSaveFileName(self.window.tabWidget, 'Save file', self.getPath(
@@ -359,7 +362,15 @@ class DocumentWindow(QMainWindow):
         Saves a file to given file path and sets up environment.
         """
         self.currentFilePath = filePath
-        self.doc.saveXML(self.currentFilePath)
+        
+        fileExt = os.path.splitext(self.currentFilePath)[1].lower()
+        
+        if fileExt == ".cma":
+            # At this stage we should never get here
+            pass
+        else: # if fileExt in [".xml", ".cml"]:
+            self.doc.saveXML(self.currentFilePath)
+            
         self.lastDoc = copy(self.doc)
         self.setPath("workingPath", self.currentFilePath)
         self.updateTitleBar()  # as we may have a new filename
