@@ -2,7 +2,6 @@
 
 block_cipher = None
 
-
 a = Analysis(['gui.py'],
              pathex=['C:\\Users\\Ivan Holmes\\code\\chordsheet'],
              binaries=[],
@@ -34,4 +33,5 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False )
+          console=False,
+          version='version.rc')
