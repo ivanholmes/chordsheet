@@ -31,12 +31,12 @@ StringFileInfo(
     u'040904B0',
     [StringStruct(u'CompanyName', u'Ivan Holmes'),
     StringStruct(u'FileDescription', u'%APPNAME%'),
-    StringStruct(u'FileVersion', %VERSION%),
+    StringStruct(u'FileVersion', u'%VERSION%'),
     StringStruct(u'InternalName', u'%APPNAME%'),
     StringStruct(u'LegalCopyright', u'Copyright (c) Ivan Holmes, 2020. Some rights reserved.'),
     StringStruct(u'OriginalFilename', u'chordsheet.exe'),
     StringStruct(u'ProductName', u'%APPNAME%'),
-    StringStruct(u'ProductVersion', %VERSION%)])
+    StringStruct(u'ProductVersion', u'%VERSION%')])
   ]), 
 VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
