@@ -119,7 +119,7 @@ class Document:
                                 blockChord = c
                                 break
                         if blockChord is None:
-                            exit("Chord {c} does not match any chord in {l}.".format(
+                            raise ValueError("Chord {c} does not match any chord in {l}.".format(
                                 c=blockChordName, l=self.chordList))
                     else:
                         blockChord = None
@@ -144,11 +144,12 @@ class Document:
         self.tempo = (root.find('tempo').text if root.find(
             'tempo') is not None else None)
 
-    def newFromXML(filepath):
+    @classmethod
+    def newFromXML(cls, filepath):
         """
         Create a new Document object directly from an XML file.
         """
-        doc = Document()
+        doc = cls()
         doc.loadXML(filepath)
         return doc
 
@@ -200,3 +201,92 @@ class Document:
 
         tree = ET.ElementTree(root)
         tree.write(filepath)
+        
+    def loadCSMacro(self, filepath):
+        """
+        Read a Chordsheet Macro file and import its contents.
+        """
+        self.chordList = []
+        self.sectionList = []
+
+        aliasTable = {}
+        
+        def chord(args):
+            argList = args.split(" ")
+            chordName = argList.pop(0)
+            
+            self.chordList.append(Chord(parseName(chordName)))
+            
+            argIter = iter(argList)
+            subCmdsArgs = list(zip(argIter, argIter))
+            
+            for subCmd, arg in subCmdsArgs:
+                if subCmd == "alias":
+                    aliasTable[arg] = chordName
+                else:
+                    self.chordList[-1].voicings[subCmd] = parseFingering(arg, subCmd)         
+            
+        def section(args):
+            blockList = []
+            
+            sectionName, blocks = [arg.strip() for arg in args.split("\n", 1)]
+            
+            self.sectionList.append(Section(name=sectionName))
+            
+            for b in blocks.split():
+                blockParams = b.split(",")
+                blockLength = float(blockParams[1])                
+                
+                if blockParams[0] in aliasTable:
+                    blockChordName = aliasTable[blockParams[0]]
+                else:
+                    blockChordName = blockParams[0]
+                
+                blockChordName = parseName(blockChordName) if blockChordName not in ["NC", "X"] else None
+                
+                blockChord = None
+                
+                if blockChordName:
+                    for c in self.chordList:
+                        if c.name == blockChordName:
+                            blockChord = c
+                            break
+                    if blockChord is None:
+                        raise ValueError("Chord {c} does not match any chord in {l}.".format(
+                            c=blockChordName, l=self.chordList))
+                
+                blockList.append(Block(blockLength, chord=blockChord))
+                
+            self.sectionList[-1].blockList = blockList
+            
+        with open(filepath, 'r') as f:
+            cmatext = f.read()
+            
+        cmaCmdsArgs = [statement.split(" ", 1) for statement in \
+            (rawStatement.strip() for rawStatement in cmatext.split("\\")[1:])]
+
+        for cmd, args in cmaCmdsArgs:
+            if cmd == "chordsheet":
+                # There's only one version so no need to do anything with this
+                pass
+            elif cmd == "title":
+                self.title = args
+            elif cmd == "subtitle":
+                self.subtitle = args
+            elif cmd == "arranger":
+                self.arranger = args
+            elif cmd == "composer":
+                self.composer = args
+            elif cmd == "timesig":
+                self.timeSignature = int(args)
+            elif cmd == "tempo":
+                self.tempo = args
+            elif cmd == "chord":
+                chord(args)
+            elif cmd == "section":
+                section(args)
+            elif cmd in ["!", "rem"]:
+                # Simply ignore comments
+                pass
+            else:
+                raise ValueError(f"Command {cmd} not understood.")

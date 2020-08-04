@@ -314,7 +314,7 @@ class DocumentWindow(QMainWindow):
     def menuFileOpenAction(self):
         if self.saveWarning(): # ask the user if they want to save 
             filePath = QFileDialog.getOpenFileName(self.window.tabWidget, 'Open file', self.getPath(
-                "workingPath"), "Chordsheet ML files (*.xml *.cml)")[0]
+                "workingPath"), "Chordsheet Markup Language files (*.xml *.cml);;Chordsheet Macro files (*.cma)")[0]
             if filePath:
                 self.openFile(filePath)
 
@@ -323,7 +323,14 @@ class DocumentWindow(QMainWindow):
         Opens a file from a file path and sets up the window accordingly.
         """
         self.currentFilePath = filePath
-        self.doc.loadXML(self.currentFilePath)
+        
+        fileExt = os.path.splitext(self.currentFilePath)[1].lower()
+        
+        if fileExt == ".cma":
+            self.doc.loadCSMacro(self.currentFilePath)
+        else: # if fileExt in [".xml", ".cml"]:
+            self.doc.loadXML(self.currentFilePath)
+            
         self.lastDoc = copy(self.doc)
         self.setPath("workingPath", self.currentFilePath)
         self.UIInitDocument()
@@ -570,7 +577,8 @@ class DocumentWindow(QMainWindow):
                         if b.chord:
                             if b.chord.name == oldName:
                                 b.chord.name = cName
-                self.window.blockTableView.populate(self.currentSection.blockList)
+                if self.currentSection and self.currentSection.blockList:
+                    self.window.blockTableView.populate(self.currentSection.blockList)
                 self.clearChordLineEdits()
 
     def removeSectionAction(self):
