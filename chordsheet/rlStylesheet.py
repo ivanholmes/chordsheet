@@ -10,7 +10,7 @@ def getStyleSheet(csStyle):
     stylesheet = StyleSheet1()
 
     stylesheet.add(ParagraphStyle(name='Master',
-                                  fontname=csStyle.font))
+                                  fontName=csStyle.font))
     
     stylesheet.add(ParagraphStyle(name='Title',
                                   leading=csStyle.lineSpacing*csStyle.titleFontSize,

@@ -49,7 +49,7 @@ class Tempo(Flowable):
         self.tempo = tempo
         self.text = "♩ = {t} bpm".format(t=self.tempo)
         self.fontSize = paraStyle.fontSize
-        self.fontname = paraStyle.fontname
+        self.fontName = paraStyle.fontName
         self.leading = paraStyle.leading
 
     def wrap(self, availWidth, availHeight):
@@ -59,7 +59,7 @@ class Tempo(Flowable):
 
     def draw(self):
         canvas = self.canv
-        canvas.setFont(self.fontname, self.fontSize)
+        canvas.setFont(self.fontName, self.fontSize)
         canvas.drawString(0, self.leading * 0.25, self.text)
 
 
