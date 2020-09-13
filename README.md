@@ -1,3 +1,5 @@
+## This project has moved to https://git.radivan.net/ivan/chordsheet. All future releases and development will occur there.
+
 # Chordsheet
 Chordsheet is a piece of software that generates a chord sheet, with a simple GUI.
 It can load and save chordsheets in its own XML-based format, and can save them in PDF format for printing.
